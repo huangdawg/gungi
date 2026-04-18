@@ -77,7 +77,7 @@ export const Cell: React.FC<CellProps> = ({
             type={topPiece.type}
             owner={topPiece.owner}
             height={towerHeight}
-            size={46}
+            size={68}
             selected={highlight === 'selected'}
           />
         </div>

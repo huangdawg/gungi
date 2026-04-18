@@ -130,7 +130,7 @@ export const Board: React.FC<BoardProps> = ({
                 const isDark = (row + col) % 2 === 1
 
                 return (
-                  <div key={`${row}-${col}`} style={{ width: 56, height: 56 }}>
+                  <div key={`${row}-${col}`} style={{ width: 80, height: 80 }}>
                     <Cell
                       pos={pos}
                       tower={tower}
