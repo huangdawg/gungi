@@ -92,6 +92,8 @@ Gungi is a fictional board game from the manga/anime Hunter x Hunter. Community-
 | Lieutenant removed | User decision to simplify piece set | — Pending |
 | Counsel removed | User decision to simplify piece set | — Pending |
 | Authoritative piece rules from user | Anime game has inconsistent community docs | — Pending |
+| Dead pawn counts as Cannon tier-3 platform | User ruling — dead pawn occupies square and enables Chinese cannon jump | ✓ Good |
+| All-moves-in-check = checkmate (loss) | User ruling — no stalemate draw; player loses if every move leaves Marshal exposed | ✓ Good |
 
 ## Evolution
 
