@@ -2,7 +2,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Rule Engine** - Pure TypeScript game logic for all pieces, tower stacking, and win conditions
+- [x] **Phase 1: Rule Engine** - Pure TypeScript game logic for all pieces, tower stacking, and win conditions
 - [ ] **Phase 2: Multiplayer Infrastructure** - Real-time server, private rooms, sessions, auth, and end-game handling
 - [ ] **Phase 3: Board UI** - Playable browser interface with board rendering, piece interaction, and game flow
 
@@ -51,6 +51,6 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Rule Engine | 0/0 | Not started | - |
+| 1. Rule Engine | 1/1 | Complete | 2026-04-17 |
 | 2. Multiplayer Infrastructure | 0/0 | Not started | - |
 | 3. Board UI | 0/0 | Not started | - |
