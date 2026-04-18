@@ -20,8 +20,8 @@ A faithful, playable Gungi experience in the browser — all piece rules enforce
 - [ ] Online multiplayer via private room + shareable link/code
 - [ ] Optional accounts — guests can play anonymously, accounts unlock history/identity
 - [ ] Traditional HxH visual style — dark wood board, 9×9 grid, Japanese-styled pieces
-- [ ] Setup phase — players alternate placing pieces (18 mandatory, up to 26, consecutive pass ends setup)
-- [ ] Drop mechanic — place undeployed pieces onto empty or friendly-occupied squares during your turn
+- [ ] Hybrid phase — first 15 turns per player are mandatory placements; after both place 15, each turn = place OR move/capture; max 25 pieces per player on board
+- [ ] Drop mechanic — place undeployed pieces; pawns anywhere, non-pawns in own first 3 rows only; max 25 pieces per player enforced
 - [ ] Tower visualization — stacked pieces visually shown as towers (max height 3)
 
 ### Out of Scope
@@ -94,6 +94,11 @@ Gungi is a fictional board game from the manga/anime Hunter x Hunter. Community-
 | Authoritative piece rules from user | Anime game has inconsistent community docs | — Pending |
 | Dead pawn counts as Cannon tier-3 platform | User ruling — dead pawn occupies square and enables Chinese cannon jump | ✓ Good |
 | All-moves-in-check = checkmate (loss) | User ruling — no stalemate draw; player loses if every move leaves Marshal exposed | ✓ Good |
+| Hybrid phase replaces discrete setup/play phases | After both players place 15 pieces, each turn = place OR move; no explicit setup end | ✓ Good |
+| Max 25 pieces per player on board (not 34) | 9 pieces always in reserve; creates strategic depth in deployment | ✓ Good |
+| Self-capture removes piece permanently | Consistent with normal capture rules; no return to reserve | ✓ Good |
+| Pawns anywhere during placement; non-pawns first 3 rows | Custom rule — pawns as territory control tools during setup | ✓ Good |
+| Kanji mapping confirmed | 帅 Marshal, 兵 Pawn, 大 General, 中 Major, 筒 Musketeer, 马 Knight, 士 Samurai, 炮 Cannon, 忍 Spy, 岩 Fortress, 弓 Archer | ✓ Good |
 
 ## Evolution
 
