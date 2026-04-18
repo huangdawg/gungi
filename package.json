@@ -1,0 +1,14 @@
+{
+  "name": "gungi-online",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "dev:server": "npm run dev -w packages/server"
+  }
+}
