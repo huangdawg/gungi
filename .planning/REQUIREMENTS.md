@@ -62,8 +62,27 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| ENGINE-01 through ENGINE-09 | — | Unmapped |
-| ROOM-01 through ROOM-04 | — | Unmapped |
-| AUTH-01 through AUTH-03 | — | Unmapped |
-| END-01 through END-03 | — | Unmapped |
-| UI-01 through UI-05 | — | Unmapped |
+| ENGINE-01 | Phase 1 | Pending |
+| ENGINE-02 | Phase 1 | Pending |
+| ENGINE-03 | Phase 1 | Pending |
+| ENGINE-04 | Phase 1 | Pending |
+| ENGINE-05 | Phase 1 | Pending |
+| ENGINE-06 | Phase 1 | Pending |
+| ENGINE-07 | Phase 1 | Pending |
+| ENGINE-08 | Phase 1 | Pending |
+| ENGINE-09 | Phase 1 | Pending |
+| ROOM-01 | Phase 2 | Pending |
+| ROOM-02 | Phase 2 | Pending |
+| ROOM-03 | Phase 2 | Pending |
+| ROOM-04 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| AUTH-03 | Phase 2 | Pending |
+| END-01 | Phase 2 | Pending |
+| END-02 | Phase 2 | Pending |
+| END-03 | Phase 2 | Pending |
+| UI-01 | Phase 3 | Pending |
+| UI-02 | Phase 3 | Pending |
+| UI-03 | Phase 3 | Pending |
+| UI-04 | Phase 3 | Pending |
+| UI-05 | Phase 3 | Pending |
