@@ -1,5 +1,5 @@
 import type { Board, Position, Move, Player } from '../types.js'
-import { buildMove, inBounds, getTopPiece, canLandOn } from '../moveUtils.js'
+import { buildMove, inBounds, canLandOn } from '../moveUtils.js'
 
 /**
  * Marshal (帅): King movement — 1 step in any of 8 directions at all tiers.

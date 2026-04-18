@@ -1,6 +1,6 @@
 import type { GameState, Position, Move, Player, PieceType } from './types.js'
-import { getTopPiece, getTier, inBounds, buildPlaceMove, canLandOn } from './moveUtils.js'
-import { HOME_ROWS, MAX_ON_BOARD, PIECE_KANJI } from './constants.js'
+import { getTopPiece, getTier, buildPlaceMove } from './moveUtils.js'
+import { HOME_ROWS, MAX_ON_BOARD } from './constants.js'
 
 import { getMarshalMoves } from './pieces/marshal.js'
 import { getPawnMoves } from './pieces/pawn.js'

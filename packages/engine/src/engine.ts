@@ -6,16 +6,14 @@
  */
 
 import type { GameState, Move, Player, PieceType } from './types.js'
-import type { Position } from './types.js'
-import { getLegalMoves, isInCheck, cloneBoard, applyMoveNoValidation } from './movement.js'
+import { getLegalMoves, cloneBoard } from './movement.js'
 import { isCheckmate } from './check.js'
 import { computePhase, nextPlayer } from './phase.js'
-import { PIECE_COUNTS, MAX_ON_BOARD, HOME_ROWS, PLACEMENT_THRESHOLD } from './constants.js'
-import { getTopPiece } from './moveUtils.js'
+import { PIECE_COUNTS } from './constants.js'
 
 export { getLegalMoves, isInCheck } from './movement.js'
 export { isCheckmate } from './check.js'
-export type { GameState, Move, Position, Player, PieceType } from './types.js'
+export type { GameState, Move, Position, Player, PieceType, Tower, Piece, Tier, PlayerState, GamePhase, GameStatus, MoveType } from './types.js'
 
 // ─── Initial State Factory ────────────────────────────────────────────────────
 
