@@ -1,4 +1,5 @@
-import { serve } from '@hono/node-server'
+import 'dotenv/config'
+import { getRequestListener } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
@@ -35,12 +36,7 @@ app.route('/games', gamesRouter)
 const port = Number(process.env.PORT ?? 3001)
 
 // Create a raw Node HTTP server so Socket.IO can attach to it
-const httpServer = createServer()
-
-// Attach Hono to the HTTP server
-httpServer.on('request', (req, res) => {
-  serve({ fetch: app.fetch, port }, () => {})(req, res)
-})
+const httpServer = createServer(getRequestListener(app.fetch))
 
 // Attach Socket.IO
 const io = createSocketServer(httpServer)

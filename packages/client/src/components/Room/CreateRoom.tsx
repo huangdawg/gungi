@@ -173,6 +173,22 @@ export const CreateRoom: React.FC = () => {
           </div>
         </div>
 
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-amber-700/30" />
+          <span className="text-xs text-amber-400/40">or</span>
+          <div className="flex-1 h-px bg-amber-700/30" />
+        </div>
+
+        {/* Local play */}
+        <button
+          onClick={() => navigate('/local')}
+          className="w-full py-3 rounded-lg bg-stone-700/60 hover:bg-stone-600/60
+            text-amber-200/70 font-semibold text-sm tracking-wide transition-colors border border-amber-700/20"
+        >
+          Play Locally (2 players, same device)
+        </button>
+
         {/* Error */}
         {error && (
           <p className="text-xs text-red-400 text-center -mt-2">{error}</p>

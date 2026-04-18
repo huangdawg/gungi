@@ -17,6 +17,7 @@
   "dependencies": {
     "@gungi/engine": "*",
     "@hono/node-server": "^1.13.7",
+    "@opentelemetry/api": "^1.9.1",
     "better-auth": "^1.6.4",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.14",
@@ -28,6 +29,7 @@
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.10",
     "better-sqlite3": "^12.0.0",
+    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.30.5",
     "tsx": "^4.19.3",
     "typescript": "^5.0.0",

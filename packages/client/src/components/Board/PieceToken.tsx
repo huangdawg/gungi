@@ -1,50 +1,66 @@
 import React from 'react'
 import type { PieceType, Player } from '@gungi/engine'
 
-// ─── Kanji map ────────────────────────────────────────────────────────────────
+// ─── Maps ─────────────────────────────────────────────────────────────────────
 
 const KANJI: Record<PieceType, string> = {
-  marshal: '帅',
-  pawn: '兵',
-  general: '大',
-  major: '中',
-  musketeer: '筒',
-  knight: '马',
-  samurai: '士',
-  cannon: '炮',
-  spy: '忍',
-  fortress: '岩',
-  archer: '弓',
+  marshal:    '帅',
+  pawn:       '兵',
+  general:    '大',
+  major:      '中',
+  musketeer:  '筒',
+  knight:     '马',
+  samurai:    '士',
+  cannon:     '炮',
+  spy:        '忍',
+  fortress:   '岩',
+  archer:     '弓',
 }
 
-// ─── SVG arc helpers ──────────────────────────────────────────────────────────
+const ENGLISH: Record<PieceType, string> = {
+  marshal:    'Marshal',
+  pawn:       'Pawn',
+  general:    'General',
+  major:      'Major',
+  musketeer:  'Musketeer',
+  knight:     'Knight',
+  samurai:    'Samurai',
+  cannon:     'Cannon',
+  spy:        'Spy',
+  fortress:   'Fortress',
+  archer:     'Archer',
+}
 
-/**
- * Computes SVG arc path for a segment of a circle.
- * cx, cy = center; r = radius; startDeg = start angle (0 = top, clockwise);
- * sweepDeg = arc sweep in degrees.
- */
-function arcPath(
-  cx: number,
-  cy: number,
-  r: number,
-  startDeg: number,
-  sweepDeg: number
+// ─── Annular sector path (filled thick arc wedge) ─────────────────────────────
+// Draws a filled crescent shape between innerR and outerR, from startDeg to endDeg.
+// 0° = top (12 o'clock), clockwise.
+
+function annularSector(
+  cx: number, cy: number,
+  innerR: number, outerR: number,
+  startDeg: number, endDeg: number
 ): string {
-  // Convert to radians. 0° = top (12 o'clock), clockwise.
   const toRad = (deg: number) => ((deg - 90) * Math.PI) / 180
+  const sR = toRad(startDeg)
+  const eR = toRad(endDeg)
+  const largeArc = (endDeg - startDeg) > 180 ? 1 : 0
 
-  const startRad = toRad(startDeg)
-  const endRad = toRad(startDeg + sweepDeg)
+  const ox1 = cx + outerR * Math.cos(sR)
+  const oy1 = cy + outerR * Math.sin(sR)
+  const ox2 = cx + outerR * Math.cos(eR)
+  const oy2 = cy + outerR * Math.sin(eR)
+  const ix1 = cx + innerR * Math.cos(sR)
+  const iy1 = cy + innerR * Math.sin(sR)
+  const ix2 = cx + innerR * Math.cos(eR)
+  const iy2 = cy + innerR * Math.sin(eR)
 
-  const x1 = cx + r * Math.cos(startRad)
-  const y1 = cy + r * Math.sin(startRad)
-  const x2 = cx + r * Math.cos(endRad)
-  const y2 = cy + r * Math.sin(endRad)
-
-  const largeArc = sweepDeg > 180 ? 1 : 0
-
-  return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`
+  return [
+    `M ${ox1} ${oy1}`,
+    `A ${outerR} ${outerR} 0 ${largeArc} 1 ${ox2} ${oy2}`,
+    `L ${ix2} ${iy2}`,
+    `A ${innerR} ${innerR} 0 ${largeArc} 0 ${ix1} ${iy1}`,
+    'Z',
+  ].join(' ')
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -52,13 +68,9 @@ function arcPath(
 export interface PieceTokenProps {
   type: PieceType
   owner: Player
-  /** Tower height (1–3) — determines how many arc segments are filled */
   height: number
-  /** Size in pixels */
   size?: number
-  /** Whether this piece is selected */
   selected?: boolean
-  /** Whether this is showing in a reserve slot (smaller variant) */
   reserve?: boolean
 }
 
@@ -70,93 +82,131 @@ export const PieceToken: React.FC<PieceTokenProps> = ({
   selected = false,
   reserve = false,
 }) => {
-  const cx = size / 2
-  const cy = size / 2
-  const outerR = size / 2 - 2
-  const strokeWidth = size * 0.1
-
-  // The arc ring radius is at the center of the stroke
-  const ringR = outerR - strokeWidth / 2
+  // Use a fixed 100×100 viewBox for clean math, scale via size prop
+  const VB = 100
+  const cx = 50
+  const cy = 50
 
   const isBlack = owner === 'black'
-  const filledColor = isBlack ? '#C0392B' : '#2C2C2C'
-  const emptyColor = '#D4C4A8'
-  const kanjiColor = isBlack ? '#C0392B' : '#1A1A1A'
+  // Filled arc color: deep red for black, dark charcoal for white
+  const filledColor  = isBlack ? '#8B1A1A' : '#1C1C1C'
+  const emptyColor   = '#3A3530'
+  const tokenBg      = '#F0EAD6'
+  const borderOuter  = isBlack ? '#5C1010' : '#111111'
+  const borderInner  = isBlack ? '#C0392B' : '#333333'
+  const kanjiColor   = isBlack ? '#8B1A1A' : '#1A1A1A'
 
-  // Each segment is 120° with a 5° gap on each side → 110° fill
-  const GAP = 5
-  const SEG = 120
-  const FILL = SEG - GAP * 2
+  // Token circle radii — two borders
+  const tokenOuter   = 26
+  const tokenInner   = 22   // gap creates the double-border look
 
-  // Segments start positions (0° = top/12 o'clock, clockwise):
-  // Segment 1: 0° + GAP → 120° - GAP
-  // Segment 2: 120° + GAP → 240° - GAP
-  // Segment 3: 240° + GAP → 360° - GAP
-  const segments = [0, 120, 240]
+  // Arc wedge radii — sit outside the token with a gap
+  const arcGap       = 4
+  const arcInner     = tokenOuter + arcGap   // 30
+  const arcOuter     = arcInner + 14          // 44 — thick chunky arcs
 
-  const fontSize = reserve ? size * 0.42 : size * 0.44
+  // 3 segments, 120° each, with 10° gap on each side → 100° fill per segment
+  const GAP_DEG = 10
+  const SEG_DEG = 120
+  const FILL_DEG = SEG_DEG - GAP_DEG * 2  // 100°
+  const starts = [0, 120, 240]
+
+  const fontSize = reserve ? VB * 0.28 : VB * 0.30
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      style={{ display: 'block', flexShrink: 0 }}
-      aria-label={`${owner} ${type}`}
+    <div
+      className="relative group inline-block"
+      style={{ width: size, height: size, flexShrink: 0 }}
     >
-      {/* Token background (cream circle) */}
-      <circle
-        cx={cx}
-        cy={cy}
-        r={outerR - strokeWidth}
-        fill="#F5F0E8"
-        stroke={selected ? '#D4A017' : 'transparent'}
-        strokeWidth={selected ? 3 : 0}
-        filter={selected ? 'url(#selectedGlow)' : undefined}
-      />
-
-      {/* Arc segments (ring) */}
-      {segments.map((startDeg, i) => {
-        const filled = i < height
-        return (
-          <path
-            key={i}
-            d={arcPath(cx, cy, ringR, startDeg + GAP, FILL)}
-            fill="none"
-            stroke={filled ? filledColor : emptyColor}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-          />
-        )
-      })}
-
-      {/* Selected glow filter */}
-      {selected && (
-        <defs>
-          <filter id="selectedGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-      )}
-
-      {/* Kanji character */}
-      <text
-        x={cx}
-        y={cy}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={fontSize}
-        fontFamily="'Noto Serif SC', serif"
-        fontWeight="700"
-        fill={kanjiColor}
-        style={{ userSelect: 'none' }}
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${VB} ${VB}`}
+        style={{ display: 'block' }}
+        aria-label={`${owner} ${ENGLISH[type]}`}
       >
-        {KANJI[type]}
-      </text>
-    </svg>
+        <defs>
+          {selected && (
+            <filter id={`glow-${type}-${owner}`} x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          )}
+        </defs>
+
+        {/* Arc wedge segments (tier indicators) — drawn first, behind token */}
+        {/* Tier 1: top only (index 0). Tier 2: bottom two (indices 1+2). Tier 3: all. */}
+        {starts.map((startDeg, i) => {
+          const filled = height === 1 ? i === 0 : height === 2 ? i > 0 : true
+          return (
+            <path
+              key={i}
+              d={annularSector(cx, cy, arcInner, arcOuter, startDeg + GAP_DEG, startDeg + GAP_DEG + FILL_DEG)}
+              fill={filled ? filledColor : emptyColor}
+              opacity={filled ? 1 : 0.35}
+            />
+          )
+        })}
+
+        {/* Outer border circle */}
+        <circle
+          cx={cx} cy={cy} r={tokenOuter}
+          fill={borderOuter}
+          filter={selected ? `url(#glow-${type}-${owner})` : undefined}
+        />
+
+        {/* Inner border ring */}
+        <circle cx={cx} cy={cy} r={tokenInner} fill={borderInner} />
+
+        {/* Token face */}
+        <circle cx={cx} cy={cy} r={tokenInner - 2} fill={tokenBg} />
+
+        {/* Selected highlight ring */}
+        {selected && (
+          <circle
+            cx={cx} cy={cy} r={tokenOuter + 2}
+            fill="none"
+            stroke="#F0C040"
+            strokeWidth={2.5}
+            opacity={0.85}
+          />
+        )}
+
+        {/* Kanji */}
+        <text
+          x={cx}
+          y={cy}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={fontSize}
+          fontFamily="'Noto Serif SC', serif"
+          fontWeight="700"
+          fill={kanjiColor}
+          style={{ userSelect: 'none' }}
+        >
+          {KANJI[type]}
+        </text>
+      </svg>
+
+      {/* English name tooltip on hover */}
+      {!reserve && (
+        <div
+          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5
+            opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50
+            whitespace-nowrap px-2 py-0.5 rounded text-xs font-semibold
+            bg-stone-900/90 text-amber-200 border border-amber-700/40 shadow-lg"
+        >
+          {ENGLISH[type]}
+          {height > 1 && (
+            <span className="ml-1 text-amber-400/60 font-normal">
+              (tier {height})
+            </span>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

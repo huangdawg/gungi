@@ -3,22 +3,20 @@
     "allow": [
       "WebSearch",
       "Bash(npx get-shit-done-cc *)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
-      "Bash(gsd-sdk query *)",
-      "Bash(git init *)",
-      "Bash(npm install *)",
-      "Bash(npm test *)",
-      "Bash(node --input-type=module)",
-      "Bash(2>&1)",
+      "Bash(brew install *)",
+      "Bash(ccgram --version)",
+      "Bash(brew link *)",
+      "Read(//opt/homebrew/Cellar/**)",
+      "Read(//opt/homebrew/**)",
+      "Bash(brew reinstall *)",
+      "Bash(pipx install *)",
+      "Bash(pip3 install *)",
+      "Bash(mkdir -p ~/.ccgram)",
       "Bash(cat)",
-      "Bash(npx tsx *)",
+      "Bash(ccgram configure *)",
       "Bash(npm run *)",
-      "Bash(git config *)",
-      "Bash(npx tsc *)",
-      "Bash(kill %1)",
-      "Bash(wait)",
-      "Bash(git -C /Users/jonathanhuang/AI log --oneline)"
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
