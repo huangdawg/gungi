@@ -1,5 +1,5 @@
 import type { Board, Position, Move, Player } from '../types.js'
-import { buildMove, inBounds, canLandOn } from '../moveUtils.js'
+import { buildMovesTo, inBounds } from '../moveUtils.js'
 
 /**
  * Spy (忍): Rings of exactly N steps in 8 directions, hopping over anything in between.
@@ -24,18 +24,18 @@ export function getSpyMoves(
   const moves: Move[] = []
   const n = tier // 1, 2, or 3
 
-  // 8 directions: the Spy lands at exactly (row ± n, col ± n) or (row ± n, col) or (row, col ± n)
-  const targets: [number, number][] = [
-    [-n, -n], [-n, 0], [-n,  n],
-    [ 0, -n],          [ 0,  n],
-    [ n, -n], [ n, 0], [ n,  n],
-  ]
+  // Full Chebyshev ring at distance n: all (dr, dc) where max(|dr|, |dc|) === n
+  const targets: [number, number][] = []
+  for (let dr = -n; dr <= n; dr++) {
+    for (let dc = -n; dc <= n; dc++) {
+      if (Math.max(Math.abs(dr), Math.abs(dc)) === n) targets.push([dr, dc])
+    }
+  }
 
   for (const [dr, dc] of targets) {
     const to: Position = { row: pos.row + dr, col: pos.col + dc }
-    if (!inBounds(to)) continue
-    if (!canLandOn(board, to, owner)) continue
-    moves.push(buildMove(board, pos, to, owner))
+    if (!inBounds(board, to)) continue
+    moves.push(...buildMovesTo(board, pos, to, owner))
   }
 
   return moves

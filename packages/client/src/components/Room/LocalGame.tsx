@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   createInitialState,
@@ -6,24 +6,171 @@ import {
   getLegalMoves,
   resign,
   declareDraw,
+  buildPreset,
 } from '@gungi/engine'
 import type { GameState, Move, Position, PieceType, Player } from '@gungi/engine'
 import { Board } from '../Board/Board'
 import { ReservePanel } from '../Reserve/ReservePanel'
 import { GameOverOverlay } from '../GameOver/GameOverOverlay'
+import { MoveChoiceModal } from '../Board/MoveChoiceModal'
+
+// ─── Debug helper ─────────────────────────────────────────────────────────────
+
+/** Three-cluster hybrid position with stacked towers:
+ *  - Left cluster (fortress/marshal): flat, defensive
+ *  - Middle cluster: SPY on a tier-3 tower [pawn, general, spy]
+ *  - Right cluster: two tier-2 cannon towers [pawn, cannon], with general and samurai
+ *    nearby that can move backward onto the cannons to promote them to tier 3
+ *  - Lone archer bridging middle and right
+ *  Mirrored for white. 18 pieces placed per side across 14 squares. */
+function buildHybridState(): GameState {
+  const board: GameState['board'] = Array.from({ length: 9 }, () =>
+    Array.from({ length: 9 }, () => null)
+  )
+
+  const place = (row: number, col: number, type: PieceType, owner: Player) => {
+    board[row]![col] = [{ type, owner }]
+  }
+  /** Build a tower on a single square, bottom → top. */
+  const tower = (row: number, col: number, owner: Player, types: PieceType[]) => {
+    board[row]![col] = types.map(type => ({ type, owner }))
+  }
+
+  // ── Black ── rows 0–2 (top of board)
+  // Left cluster — flat defensive wall
+  place(0, 1, 'fortress', 'black')
+  place(0, 2, 'marshal',  'black')
+  place(1, 1, 'general',  'black')
+  place(2, 2, 'pawn',     'black')
+
+  // Middle cluster — tier-3 spy tower + support
+  tower(0, 4, 'black', ['pawn', 'general', 'spy']) // tier 3: spy on top
+  place(1, 3, 'general',  'black')
+  place(1, 4, 'samurai',  'black')
+  place(2, 3, 'pawn',     'black')
+  place(2, 4, 'pawn',     'black')
+
+  // Right cluster — tier-2 cannon battery + promoters
+  tower(0, 7, 'black', ['pawn', 'cannon']) // tier 2 cannon
+  tower(0, 8, 'black', ['pawn', 'cannon']) // tier 2 cannon
+  place(1, 7, 'general',  'black') // moves backward onto (0,7) to promote → tier 3
+  place(1, 8, 'samurai',  'black') // samurai reach covers (0,7) and (0,8)
+
+  // Bridge piece
+  place(1, 5, 'archer',   'black')
+
+  // ── White ── rows 6–8 (mirrored vertically)
+  place(8, 1, 'fortress', 'white')
+  place(8, 2, 'marshal',  'white')
+  place(7, 1, 'general',  'white')
+  place(6, 2, 'pawn',     'white')
+
+  tower(8, 4, 'white', ['pawn', 'general', 'spy'])
+  place(7, 3, 'general',  'white')
+  place(7, 4, 'samurai',  'white')
+  place(6, 3, 'pawn',     'white')
+  place(6, 4, 'pawn',     'white')
+
+  tower(8, 7, 'white', ['pawn', 'cannon'])
+  tower(8, 8, 'white', ['pawn', 'cannon'])
+  place(7, 7, 'general',  'white')
+  place(7, 8, 'samurai',  'white')
+
+  place(7, 5, 'archer',   'white')
+
+  // Reserves: full roster (34) minus placed (18 per side).
+  // Used per side: 1 marshal, 6 pawns, 4 generals, 2 samurai, 2 cannons,
+  // 1 spy, 1 fortress, 1 archer (= 18). Reserve totals 16.
+  const reserve: PieceType[] = [
+    'pawn','pawn','pawn',
+    'general','general',
+    'major','major','major','major',
+    'musketeer','musketeer',
+    'knight','knight',
+    'spy',
+    'fortress',
+    'archer',
+  ]
+
+  return {
+    mode: 'normal',
+    board,
+    players: {
+      black: { reserve: [...reserve], placedCount: 18, onBoardCount: 18 },
+      white: { reserve: [...reserve], placedCount: 18, onBoardCount: 18 },
+    },
+    currentPlayer: 'black',
+    phase: 'hybrid',
+    turnNumber: 37,
+    gameStatus: 'active',
+    winner: null,
+  }
+}
+
+/** Minimal board positioned 1 move away from checkmate.
+ *  Black to move. Black musketeer at e4 can slide forward and capture white marshal at e9. */
+function buildNearCheckmateState(): GameState {
+  const board: GameState['board'] = Array.from({ length: 9 }, () =>
+    Array.from({ length: 9 }, () => null)
+  )
+
+  const place = (row: number, col: number, type: PieceType, owner: Player) => {
+    board[row]![col] = [{ type, owner }]
+  }
+
+  // Marshals
+  place(0, 4, 'marshal', 'black')
+  place(8, 4, 'marshal', 'white')
+
+  // Black musketeer positioned to slide straight forward into white marshal (no blockers in file e)
+  place(3, 4, 'musketeer', 'black')
+
+  // A few quiet pieces so the board feels lived-in (no effect on the win path)
+  place(2, 1, 'pawn', 'black')
+  place(6, 7, 'pawn', 'white')
+  place(1, 6, 'knight', 'black')
+  place(7, 2, 'knight', 'white')
+
+  const emptyReserve: PieceType[] = []
+
+  return {
+    mode: 'normal',
+    board,
+    players: {
+      black: { reserve: emptyReserve, placedCount: 25, onBoardCount: 4 },
+      white: { reserve: emptyReserve, placedCount: 25, onBoardCount: 3 },
+    },
+    currentPlayer: 'black',
+    phase: 'hybrid',
+    turnNumber: 51,
+    gameStatus: 'active',
+    winner: null,
+  }
+}
 
 // ─── Local game — no server, both players on same device ─────────────────────
 
 export const LocalGame: React.FC = () => {
   const navigate = useNavigate()
 
-  const [gameState, setGameState] = useState<GameState>(() => createInitialState())
+  // Read mode from ?mode=mini in the URL; default to normal if absent or invalid.
+  const mode: 'normal' | 'mini' = (() => {
+    const raw = new URLSearchParams(window.location.search).get('mode')
+    return raw === 'mini' ? 'mini' : 'normal'
+  })()
+
+  const [gameState, setGameState] = useState<GameState>(() => createInitialState(mode))
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
   const [selectedReservePiece, setSelectedReservePiece] = useState<PieceType | null>(null)
   const [legalMoves, setLegalMoves] = useState<Move[]>([])
   const [lastMove, setLastMove] = useState<{ from: Position | null; to: Position } | null>(null)
   const [drawOffered, setDrawOffered] = useState(false)
   const [drawPending, setDrawPending] = useState(false)
+  const [pendingChoice, setPendingChoice] = useState<{
+    moves: Move[]
+    from: Position | null
+    to: Position
+  } | null>(null)
 
   const currentPlayer = gameState.currentPlayer
   const isActive = gameState.gameStatus === 'active'
@@ -35,6 +182,17 @@ export const LocalGame: React.FC = () => {
     setSelectedReservePiece(null)
     setLegalMoves([])
   }, [])
+
+  // Clear selection when the user clicks outside any game surface.
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target || target.closest('[data-game-surface]')) return
+      clearSelection()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [clearSelection])
 
   const selectPieceAt = useCallback(
     (pos: Position, state: GameState) => {
@@ -89,15 +247,37 @@ export const LocalGame: React.FC = () => {
 
       // Move mode: destination click
       if (selectedPosition !== null) {
-        const dest = legalMoves.find(
+        const destMoves = legalMoves.filter(
           m => m.to.row === pos.row && m.to.col === pos.col
         )
-        if (dest) {
-          executeMove(dest, selectedPosition, pos)
+        if (destMoves.length === 0) {
+          // Re-select own piece
+          selectPieceAt(pos, gameState)
           return
         }
-        // Re-select own piece
-        selectPieceAt(pos, gameState)
+
+        const destTower = gameState.board[pos.row]?.[pos.col] ?? null
+        const destHeight = destTower ? destTower.length : 0
+        // Identify moving piece for piece-specific confirmation rules
+        const srcTower = gameState.board[selectedPosition.row]?.[selectedPosition.col] ?? null
+        const srcTop = srcTower ? srcTower[srcTower.length - 1] : null
+        const isMajorOrGeneral =
+          srcTop && (srcTop.type === 'major' || srcTop.type === 'general')
+        const isCaptureOnly =
+          destMoves.length === 1 && destMoves[0]!.type === 'capture'
+        // Confirm via modal when:
+        //   - multiple options (stack vs capture), OR
+        //   - capturing into a full (height-3) tower, OR
+        //   - Major/General executing a capture (high-value piece commits intent)
+        const needsConfirm =
+          destMoves.length > 1 ||
+          destHeight === 3 ||
+          (isMajorOrGeneral && isCaptureOnly)
+        if (needsConfirm) {
+          setPendingChoice({ moves: destMoves, from: selectedPosition, to: pos })
+          return
+        }
+        executeMove(destMoves[0]!, selectedPosition, pos)
         return
       }
 
@@ -153,23 +333,35 @@ export const LocalGame: React.FC = () => {
 
   // ── Derived ──
 
-  const opponentColor: Player = currentPlayer === 'black' ? 'white' : 'black'
-  const myPlayerState = gameState.players[currentPlayer]
-  const opponentPlayerState = gameState.players[opponentColor]
   const isOver = gameState.gameStatus !== 'active'
+  const blackState = gameState.players.black
+  const whiteState = gameState.players.white
 
   return (
     <div
       className="min-h-screen flex flex-col"
       style={{ background: 'linear-gradient(160deg, #120900 0%, #0A0500 100%)' }}
     >
-      {/* Game over overlay */}
+      {/* Stack-vs-capture choice modal */}
+      {pendingChoice && (
+        <MoveChoiceModal
+          moves={pendingChoice.moves}
+          onChoice={(move) => {
+            executeMove(move, pendingChoice.from, pendingChoice.to)
+            setPendingChoice(null)
+          }}
+          onCancel={() => { setPendingChoice(null); clearSelection() }}
+        />
+      )}
+
+      {/* Game over overlay — floats above board, board stays visible */}
       {isOver && (
         <GameOverOverlay
+          variant="local"
           winner={gameState.winner}
           reason={gameState.gameStatus as 'checkmate' | 'resigned' | 'draw'}
           playerColor={currentPlayer}
-          onPlayAgain={() => { setGameState(createInitialState()); clearSelection(); setLastMove(null); setDrawOffered(false); setDrawPending(false); }}
+          onPlayAgain={() => { setGameState(createInitialState(mode)); clearSelection(); setLastMove(null); setDrawOffered(false); setDrawPending(false); }}
         />
       )}
 
@@ -209,30 +401,35 @@ export const LocalGame: React.FC = () => {
       {/* Main layout */}
       <div className="flex flex-1 items-start justify-center gap-4 px-4 py-4 flex-wrap">
 
-        {/* Left: opponent (the player who just moved) reserve */}
-        <div className="flex flex-col gap-3 w-44">
+        {/* Left: Black's reserve (always) */}
+        <div className="flex flex-col gap-3 w-52">
           <div className="flex items-center gap-2">
-            <div className={`w-2.5 h-2.5 rounded-full ${opponentColor === 'black' ? 'bg-red-500' : 'bg-stone-400'}`} />
-            <span className="text-xs text-amber-200/60">
-              {opponentColor === 'black' ? 'Black' : 'White'} (waiting)
-            </span>
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            <span className="text-xs text-amber-200/60">Black</span>
+            {currentPlayer === 'black' && isActive && (
+              <span className="text-[10px] bg-red-900/30 text-red-300 px-1.5 py-0.5 rounded-full ml-auto">
+                active
+              </span>
+            )}
           </div>
           <ReservePanel
-            playerState={opponentPlayerState}
-            owner={opponentColor}
-            isMyTurn={false}
-            isMyPanel={false}
-            selectedReservePiece={null}
-            onReservePieceClick={() => {}}
+            playerState={blackState}
+            owner="black"
+            isMyTurn={currentPlayer === 'black' && isActive}
+            isMyPanel={currentPlayer === 'black'}
+            selectedReservePiece={currentPlayer === 'black' ? selectedReservePiece : null}
+            onReservePieceClick={currentPlayer === 'black' ? handleReservePieceClick : () => {}}
             label="Reserve"
+            mode={gameState.mode}
           />
         </div>
 
-        {/* Center: board */}
+        {/* Center: board — when game ends, freeze perspective to the winner's side
+            so the capturing move stays in its original orientation. */}
         <div className="flex flex-col items-center gap-3">
           <Board
             gameState={gameState}
-            playerColor={currentPlayer}
+            playerColor={isActive ? currentPlayer : (gameState.winner ?? currentPlayer)}
             selectedPosition={selectedPosition}
             legalMoves={legalMoves}
             lastMove={lastMove}
@@ -240,26 +437,27 @@ export const LocalGame: React.FC = () => {
           />
         </div>
 
-        {/* Right: current player reserve + controls */}
-        <div className="flex flex-col gap-3 w-44">
+        {/* Right: White's reserve + controls (always) */}
+        <div className="flex flex-col gap-3 w-52">
           <div className="flex items-center gap-2">
-            <div className={`w-2.5 h-2.5 rounded-full ${currentPlayer === 'black' ? 'bg-red-500' : 'bg-stone-400'}`} />
-            <span className="text-xs text-amber-200/60">
-              {currentPlayer === 'black' ? 'Black' : 'White'} (active)
-            </span>
-            <span className="text-[10px] bg-green-700/20 text-green-400 px-1.5 py-0.5 rounded-full ml-auto">
-              your turn
-            </span>
+            <div className="w-2.5 h-2.5 rounded-full bg-stone-400" />
+            <span className="text-xs text-amber-200/60">White</span>
+            {currentPlayer === 'white' && isActive && (
+              <span className="text-[10px] bg-stone-600/30 text-stone-300 px-1.5 py-0.5 rounded-full ml-auto">
+                active
+              </span>
+            )}
           </div>
 
           <ReservePanel
-            playerState={myPlayerState}
-            owner={currentPlayer}
-            isMyTurn={isActive}
-            isMyPanel={true}
-            selectedReservePiece={selectedReservePiece}
-            onReservePieceClick={handleReservePieceClick}
+            playerState={whiteState}
+            owner="white"
+            isMyTurn={currentPlayer === 'white' && isActive}
+            isMyPanel={currentPlayer === 'white'}
+            selectedReservePiece={currentPlayer === 'white' ? selectedReservePiece : null}
+            onReservePieceClick={currentPlayer === 'white' ? handleReservePieceClick : () => {}}
             label="Reserve"
+            mode={gameState.mode}
           />
 
           {/* Local controls */}
@@ -286,6 +484,33 @@ export const LocalGame: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Debug widget — dev only */}
+      {import.meta.env.DEV && (
+        <div className="fixed bottom-3 left-3 flex flex-col gap-1 z-50">
+          <span className="text-[9px] text-amber-200/30 uppercase tracking-widest">debug</span>
+          <button
+            onClick={() => { setGameState(buildPreset('hybrid', mode)); clearSelection(); setLastMove(null) }}
+            className="px-2 py-1 rounded bg-stone-800/80 border border-stone-600/40 text-amber-200/60 text-xs hover:text-amber-200 hover:border-amber-600/40 transition-colors"
+          >
+            → Skip to Hybrid
+          </button>
+          {mode === 'normal' && (
+            <button
+              onClick={() => { setGameState(buildNearCheckmateState()); clearSelection(); setLastMove(null); setDrawOffered(false); setDrawPending(false) }}
+              className="px-2 py-1 rounded bg-stone-800/80 border border-stone-600/40 text-amber-200/60 text-xs hover:text-amber-200 hover:border-amber-600/40 transition-colors"
+            >
+              ⚔ Near Checkmate
+            </button>
+          )}
+          <button
+            onClick={() => { setGameState(createInitialState(mode)); clearSelection(); setLastMove(null); setDrawOffered(false); setDrawPending(false) }}
+            className="px-2 py-1 rounded bg-stone-800/80 border border-stone-600/40 text-amber-200/60 text-xs hover:text-amber-200 hover:border-amber-600/40 transition-colors"
+          >
+            ↺ Reset
+          </button>
+        </div>
+      )}
     </div>
   )
 }

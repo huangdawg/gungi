@@ -7,8 +7,10 @@ import { GameOverOverlay } from '../GameOver/GameOverOverlay'
 import { ChatPanel } from '../Chat/ChatPanel'
 import { GameControls } from '../Controls/GameControls'
 import { WaitingRoom } from './WaitingRoom'
-import { emitJoinRoom, emitMove } from '../../socket/client'
-import type { Position, Player } from '@gungi/engine'
+import { MoveChoiceModal } from '../Board/MoveChoiceModal'
+import { emitJoinRoom, emitMove, emitDebugSetState } from '../../socket/client'
+import { ensureGuestSession } from '../../api/session'
+import type { Move, Position, Player } from '@gungi/engine'
 
 // ─── Game page ────────────────────────────────────────────────────────────────
 
@@ -30,6 +32,8 @@ export const GamePage: React.FC = () => {
     drawPending,
     waitingForOpponent,
     opponentName,
+    mySkipVote,
+    opponentSkipVote,
     selectCell,
     selectReservePiece,
     clearSelection,
@@ -40,25 +44,51 @@ export const GamePage: React.FC = () => {
     winner: Player | null
     reason: 'checkmate' | 'resigned' | 'draw' | 'forfeit'
   } | null>(null)
+  const [pendingChoice, setPendingChoice] = useState<{
+    moves: Move[]
+    from: Position | null
+    to: Position
+  } | null>(null)
 
   const displayName =
     (location.state as { displayName?: string } | null)?.displayName ?? 'Guest'
 
-  // Join room on mount
+  // Join room on mount. If the visitor has no session yet (e.g. they followed
+  // a share link in a fresh browser), create a guest session first instead of
+  // bouncing them back to the home page.
   useEffect(() => {
     if (!code) {
       navigate('/')
       return
     }
 
-    const token = localStorage.getItem('gungi-session-token') ?? ''
-    if (!token) {
-      navigate('/')
-      return
-    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const token = await ensureGuestSession()
+        if (cancelled) return
+        emitJoinRoom(code.toUpperCase(), token, displayName)
+      } catch (err) {
+        console.error('Session/join failed:', err)
+        if (!cancelled) navigate('/')
+      }
+    })()
 
-    emitJoinRoom(code.toUpperCase(), token, displayName)
+    return () => { cancelled = true }
   }, [code, displayName, navigate])
+
+  // Clear selection on clicks outside any game surface (board, reserve panels,
+  // move-choice modal). Uses mousedown so it fires before a stray click can
+  // trigger something else.
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!target || target.closest('[data-game-surface]')) return
+      clearSelection()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [clearSelection])
 
   // Watch for game over
   useEffect(() => {
@@ -90,12 +120,29 @@ export const GamePage: React.FC = () => {
 
       // Board move: if a destination is selected
       if (selectedPosition !== null) {
-        const destMove = legalMoves.find(
+        const destMoves = legalMoves.filter(
           (m) => m.to.row === pos.row && m.to.col === pos.col
         )
-        if (destMove) {
+        if (destMoves.length > 0) {
+          const destTower = gameState.board[pos.row]?.[pos.col] ?? null
+          const destHeight = destTower ? destTower.length : 0
+          const srcTower = gameState.board[selectedPosition.row]?.[selectedPosition.col] ?? null
+          const srcTop = srcTower ? srcTower[srcTower.length - 1] : null
+          const isMajorOrGeneral =
+            srcTop && (srcTop.type === 'major' || srcTop.type === 'general')
+          const isCaptureOnly =
+            destMoves.length === 1 && destMoves[0]!.type === 'capture'
+          // Confirm modal when: multi-option, tier-3 tower capture, or Major/General capture
+          const needsConfirm =
+            destMoves.length > 1 ||
+            destHeight === 3 ||
+            (isMajorOrGeneral && isCaptureOnly)
+          if (needsConfirm) {
+            setPendingChoice({ moves: destMoves, from: selectedPosition, to: pos })
+            return
+          }
           useGameStore.getState().setLastMove({ from: selectedPosition, to: pos })
-          emitMove(destMove)
+          emitMove(destMoves[0]!)
           clearSelection()
           return
         }
@@ -127,13 +174,8 @@ export const GamePage: React.FC = () => {
     [gameState, playerColor, selectReservePiece]
   )
 
-  // Waiting for opponent
-  if (!gameState || (waitingForOpponent && gameState.players.black === null)) {
-    return <WaitingRoom roomCode={code?.toUpperCase() ?? ''} />
-  }
-
-  // If we're connected but the room is waiting for second player
-  if (waitingForOpponent) {
+  // Waiting for opponent (or still negotiating the join)
+  if (!gameState || waitingForOpponent) {
     return <WaitingRoom roomCode={roomCode ?? code?.toUpperCase() ?? ''} />
   }
 
@@ -147,15 +189,28 @@ export const GamePage: React.FC = () => {
   }
 
   const isMyTurn = gameState.currentPlayer === playerColor
-  const opponentColor: Player = playerColor === 'black' ? 'white' : 'black'
-  const myPlayerState = gameState.players[playerColor]
-  const opponentPlayerState = gameState.players[opponentColor]
+  const blackState = gameState.players.black
+  const whiteState = gameState.players.white
 
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className="h-screen flex flex-col overflow-hidden"
       style={{ background: 'linear-gradient(160deg, #120900 0%, #0A0500 100%)' }}
     >
+      {/* Stack-vs-capture choice modal */}
+      {pendingChoice && (
+        <MoveChoiceModal
+          moves={pendingChoice.moves}
+          onChoice={(move) => {
+            useGameStore.getState().setLastMove({ from: pendingChoice.from, to: pendingChoice.to })
+            emitMove(move)
+            clearSelection()
+            setPendingChoice(null)
+          }}
+          onCancel={() => { setPendingChoice(null); clearSelection() }}
+        />
+      )}
+
       {/* Game over overlay */}
       {gameOver && (
         <GameOverOverlay
@@ -195,16 +250,14 @@ export const GamePage: React.FC = () => {
       {/* Main layout */}
       <div className="flex flex-1 items-start justify-center gap-4 px-4 py-4 flex-wrap">
 
-        {/* Left panel: opponent reserve */}
-        <div className="flex flex-col gap-3 w-44">
+        {/* Left panel: Black's reserve (always) */}
+        <div className="flex flex-col gap-3 w-52">
           <div className="flex items-center gap-2">
-            <div
-              className={`w-2.5 h-2.5 rounded-full ${opponentColor === 'black' ? 'bg-red-500' : 'bg-stone-400'}`}
-            />
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
             <span className="text-xs text-amber-200/60 truncate">
-              {opponentName ?? opponentColor.charAt(0).toUpperCase() + opponentColor.slice(1)}
+              {playerColor === 'black' ? 'You' : (opponentName ?? 'Opponent')} · Black
             </span>
-            {!isMyTurn && (
+            {gameState.currentPlayer === 'black' && !isMyTurn && (
               <span className="text-[10px] bg-amber-600/20 text-amber-400 px-1.5 py-0.5 rounded-full ml-auto">
                 thinking
               </span>
@@ -212,13 +265,14 @@ export const GamePage: React.FC = () => {
           </div>
 
           <ReservePanel
-            playerState={opponentPlayerState}
-            owner={opponentColor}
-            isMyTurn={false}
-            isMyPanel={false}
-            selectedReservePiece={null}
-            onReservePieceClick={() => {}}
-            label="Opponent Reserve"
+            playerState={blackState}
+            owner="black"
+            isMyTurn={playerColor === 'black' && isMyTurn}
+            isMyPanel={gameState.currentPlayer === 'black'}
+            selectedReservePiece={playerColor === 'black' ? selectedReservePiece : null}
+            onReservePieceClick={playerColor === 'black' ? handleReservePieceClick : () => {}}
+            label="Reserve"
+            mode={gameState.mode}
           />
         </div>
 
@@ -234,36 +288,39 @@ export const GamePage: React.FC = () => {
           />
         </div>
 
-        {/* Right panel: my reserve + controls + chat */}
-        <div className="flex flex-col gap-3 w-44">
+        {/* Right panel: White's reserve + controls + chat. Stretches to row
+            height so ChatPanel's flex-1 can fill the leftover space. */}
+        <div className="flex flex-col gap-3 w-52 self-stretch min-h-0">
           <div className="flex items-center gap-2">
-            <div
-              className={`w-2.5 h-2.5 rounded-full ${playerColor === 'black' ? 'bg-red-500' : 'bg-stone-400'}`}
-            />
+            <div className="w-2.5 h-2.5 rounded-full bg-stone-400" />
             <span className="text-xs text-amber-200/60 truncate">
-              You ({playerColor})
+              {playerColor === 'white' ? 'You' : (opponentName ?? 'Opponent')} · White
             </span>
-            {isMyTurn && (
-              <span className="text-[10px] bg-green-700/20 text-green-400 px-1.5 py-0.5 rounded-full ml-auto">
-                your turn
+            {gameState.currentPlayer === 'white' && !isMyTurn && (
+              <span className="text-[10px] bg-amber-600/20 text-amber-400 px-1.5 py-0.5 rounded-full ml-auto">
+                thinking
               </span>
             )}
           </div>
 
           <ReservePanel
-            playerState={myPlayerState}
-            owner={playerColor}
-            isMyTurn={isMyTurn}
-            isMyPanel={true}
-            selectedReservePiece={selectedReservePiece}
-            onReservePieceClick={handleReservePieceClick}
-            label="Your Reserve"
+            playerState={whiteState}
+            owner="white"
+            isMyTurn={playerColor === 'white' && isMyTurn}
+            isMyPanel={gameState.currentPlayer === 'white'}
+            selectedReservePiece={playerColor === 'white' ? selectedReservePiece : null}
+            onReservePieceClick={playerColor === 'white' ? handleReservePieceClick : () => {}}
+            label="Reserve"
+            mode={gameState.mode}
           />
 
           <GameControls
             drawOffered={drawOffered}
             drawPending={drawPending}
             gameActive={gameState.gameStatus === 'active'}
+            canSkipPlacement={gameState.phase === 'placement'}
+            mySkipVote={mySkipVote}
+            opponentSkipVote={opponentSkipVote}
           />
 
           <ChatPanel
@@ -274,6 +331,33 @@ export const GamePage: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Debug widget — dev only. Server applies the preset and broadcasts to
+          both players, so this works for testing endgame scenarios with a
+          friend in real time. */}
+      {import.meta.env.DEV && (
+        <div className="fixed bottom-3 left-3 flex flex-col gap-1 z-50">
+          <span className="text-[9px] text-amber-200/30 uppercase tracking-widest">debug</span>
+          <button
+            onClick={() => emitDebugSetState('hybrid')}
+            className="px-2 py-1 rounded bg-stone-800/80 border border-stone-600/40 text-amber-200/60 text-xs hover:text-amber-200 hover:border-amber-600/40 transition-colors"
+          >
+            → Skip to Hybrid
+          </button>
+          <button
+            onClick={() => emitDebugSetState('near-checkmate')}
+            className="px-2 py-1 rounded bg-stone-800/80 border border-stone-600/40 text-amber-200/60 text-xs hover:text-amber-200 hover:border-amber-600/40 transition-colors"
+          >
+            ⚔ Near Checkmate
+          </button>
+          <button
+            onClick={() => emitDebugSetState('reset')}
+            className="px-2 py-1 rounded bg-stone-800/80 border border-stone-600/40 text-amber-200/60 text-xs hover:text-amber-200 hover:border-amber-600/40 transition-colors"
+          >
+            ↺ Reset
+          </button>
+        </div>
+      )}
     </div>
   )
 }

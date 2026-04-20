@@ -5,7 +5,7 @@ import type { PieceType, Player } from '@gungi/engine'
 
 const KANJI: Record<PieceType, string> = {
   marshal:    '帅',
-  pawn:       '兵',
+  pawn:       '小',
   general:    '大',
   major:      '中',
   musketeer:  '筒',
@@ -192,21 +192,19 @@ export const PieceToken: React.FC<PieceTokenProps> = ({
       </svg>
 
       {/* English name tooltip on hover */}
-      {!reserve && (
-        <div
-          className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5
-            opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50
-            whitespace-nowrap px-2 py-0.5 rounded text-xs font-semibold
-            bg-stone-900/90 text-amber-200 border border-amber-700/40 shadow-lg"
-        >
-          {ENGLISH[type]}
-          {height > 1 && (
-            <span className="ml-1 text-amber-400/60 font-normal">
-              (tier {height})
-            </span>
-          )}
-        </div>
-      )}
+      <div
+        className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5
+          opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50
+          whitespace-nowrap px-2 py-0.5 rounded text-xs font-semibold
+          bg-stone-900/90 text-amber-200 border border-amber-700/40 shadow-lg"
+      >
+        {ENGLISH[type]}
+        {!reserve && height > 1 && (
+          <span className="ml-1 text-amber-400/60 font-normal">
+            (tier {height})
+          </span>
+        )}
+      </div>
     </div>
   )
 }

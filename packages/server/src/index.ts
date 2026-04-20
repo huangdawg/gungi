@@ -8,6 +8,7 @@ import roomsRouter from './routes/rooms.js'
 import authRouter from './routes/auth.js'
 import gamesRouter from './routes/games.js'
 import { createSocketServer } from './socket/index.js'
+import { honoOriginResolver } from './cors.js'
 
 // ─── Hono app ─────────────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ app.use('*', logger())
 app.use(
   '*',
   cors({
-    origin: process.env.CLIENT_URL ?? 'http://localhost:5173',
+    origin: honoOriginResolver,
     credentials: true,
   })
 )
@@ -26,10 +27,10 @@ app.use(
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
-// Routes
-app.route('/rooms', roomsRouter)
-app.route('/auth', authRouter)
-app.route('/games', gamesRouter)
+// Routes — mounted under /api to match client fetches (Vite proxies /api → server)
+app.route('/api/rooms', roomsRouter)
+app.route('/api/auth', authRouter)
+app.route('/api/games', gamesRouter)
 
 // ─── HTTP server with Socket.IO ───────────────────────────────────────────────
 

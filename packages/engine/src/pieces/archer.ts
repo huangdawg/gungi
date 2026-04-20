@@ -1,5 +1,5 @@
 import type { Board, Position, Move, Player } from '../types.js'
-import { buildMove, inBounds, canLandOn } from '../moveUtils.js'
+import { buildMovesTo, inBounds } from '../moveUtils.js'
 
 /**
  * Archer (弓):
@@ -30,15 +30,13 @@ export function getArcherMoves(
         row: pos.row + dr * step,
         col: pos.col + dc * step,
       }
-      if (!inBounds(to)) break
-      if (!canLandOn(board, to, owner)) break
+      if (!inBounds(board, to)) break
 
-      const tower = board[to.row]?.[to.col] ?? null
-      const top = tower ? tower[tower.length - 1] : null
+      const options = buildMovesTo(board, pos, to, owner)
+      if (options.length === 0) break
+      moves.push(...options)
 
-      moves.push(buildMove(board, pos, to, owner))
-
-      if (top) break // stop after hitting occupied square
+      if (board[to.row]?.[to.col]) break // stop after hitting occupied square
     }
   }
 

@@ -1,12 +1,12 @@
 import type { Board, Position, Move, Player } from '../types.js'
-import { buildMove, inBounds, canLandOn } from '../moveUtils.js'
+import { buildMove, buildMovesTo, inBounds } from '../moveUtils.js'
 
 /**
  * Cannon (炮):
  * Tier 1: Move+Capture: exactly 2 squares orthogonally (no sliding, no diagonals).
  *         The intermediate square is irrelevant (can jump).
  * Tier 2: Full rook — any number of squares orthogonally (sliding).
- * Tier 3: Chinese cannon — moves to empty squares like a rook, but captures by
+ * Tier 3: Chinese cannon — moves to empty squares like a rook, but attacks by
  *         jumping over exactly 1 intervening piece (including dead pawns).
  *
  * Dead pawns count as valid "platform" pieces for the Tier 3 jump.
@@ -22,14 +22,19 @@ export function getCannonMoves(
   return getCannonTier3Moves(board, pos, owner)
 }
 
-/** Tier 1: jump exactly 2 squares orthogonally */
+/** Tier 1: rook slide, capped at 2 squares, stops on any occupied square */
 function getCannonTier1Moves(board: Board, pos: Position, owner: Player): Move[] {
   const moves: Move[] = []
-  for (const [dr, dc] of [[-2, 0], [2, 0], [0, -2], [0, 2]] as [number, number][]) {
-    const to: Position = { row: pos.row + dr, col: pos.col + dc }
-    if (!inBounds(to)) continue
-    if (!canLandOn(board, to, owner)) continue
-    moves.push(buildMove(board, pos, to, owner))
+  for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as [number, number][]) {
+    for (let step = 1; step <= 2; step++) {
+      const to: Position = { row: pos.row + dr * step, col: pos.col + dc * step }
+      if (!inBounds(board, to)) break
+
+      const options = buildMovesTo(board, pos, to, owner)
+      if (options.length === 0) break
+      moves.push(...options)
+      if (board[to.row]?.[to.col]) break // stop after hitting occupied
+    }
   }
   return moves
 }
@@ -38,26 +43,25 @@ function getCannonTier1Moves(board: Board, pos: Position, owner: Player): Move[]
 function getCannonTier2Moves(board: Board, pos: Position, owner: Player): Move[] {
   const moves: Move[] = []
   for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as [number, number][]) {
-    for (let step = 1; step < 9; step++) {
+    for (let step = 1; step < board.length; step++) {
       const to: Position = { row: pos.row + dr * step, col: pos.col + dc * step }
-      if (!inBounds(to)) break
-      if (!canLandOn(board, to, owner)) break
+      if (!inBounds(board, to)) break
 
-      const tower = board[to.row]?.[to.col] ?? null
-      const top = tower ? tower[tower.length - 1] : null
-
-      moves.push(buildMove(board, pos, to, owner))
-      if (top) break // stop after hitting occupied square
+      const options = buildMovesTo(board, pos, to, owner)
+      if (options.length === 0) break
+      moves.push(...options)
+      if (board[to.row]?.[to.col]) break // stop after hitting occupied square
     }
   }
   return moves
 }
 
 /**
- * Tier 3: Chinese cannon
- * - To empty squares: moves like rook (slides through empty squares, stops before occupied).
- * - To capture: must have exactly 1 intervening piece (the "platform") between cannon and target.
- *   Platform can be ANY piece including dead pawns.
+ * Tier 3: Rook + Chinese cannon.
+ * - Empty squares: rook slide.
+ * - First occupied piece in a direction: rook-style stack-or-capture at that square,
+ *   AND the piece also acts as a "platform" allowing a jump to the next piece in line.
+ * - Post-platform: skips empties, then offers stack-or-capture on the next piece.
  */
 function getCannonTier3Moves(board: Board, pos: Position, owner: Player): Move[] {
   const moves: Move[] = []
@@ -65,34 +69,31 @@ function getCannonTier3Moves(board: Board, pos: Position, owner: Player): Move[]
   for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as [number, number][]) {
     let platformFound = false
 
-    for (let step = 1; step < 9; step++) {
+    for (let step = 1; step < board.length; step++) {
       const to: Position = { row: pos.row + dr * step, col: pos.col + dc * step }
-      if (!inBounds(to)) break
+      if (!inBounds(board, to)) break
 
       const tower = board[to.row]?.[to.col] ?? null
       const top = tower ? tower[tower.length - 1] : null
 
       if (!platformFound) {
         if (!top) {
-          // Empty square: can move here
+          // Empty square: rook-style slide
           moves.push(buildMove(board, pos, to, owner))
         } else {
-          // First occupied square encountered = platform piece
+          // First occupied: rook-style target (stack-or-capture) AND platform for jump
+          moves.push(...buildMovesTo(board, pos, to, owner))
           platformFound = true
-          // Cannot land on the platform piece itself (no move/stack to platform)
         }
       } else {
-        // After platform: look for first occupied square = target
-        if (!top) continue // skip empty squares after platform
-
-        // Found target: can capture if enemy (or self-capture)
-        if (canLandOn(board, to, owner)) {
-          moves.push(buildMove(board, pos, to, owner))
-        }
-        break // stop looking in this direction after first post-platform piece
+        // After platform: skip empties, then offer stack-or-capture on next piece
+        if (!top) continue
+        moves.push(...buildMovesTo(board, pos, to, owner))
+        break
       }
     }
   }
 
   return moves
 }
+

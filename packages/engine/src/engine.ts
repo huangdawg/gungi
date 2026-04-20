@@ -9,31 +9,41 @@ import type { GameState, Move, Player, PieceType } from './types.js'
 import { getLegalMoves, cloneBoard } from './movement.js'
 import { isCheckmate } from './check.js'
 import { computePhase, nextPlayer } from './phase.js'
-import { PIECE_COUNTS } from './constants.js'
+import { MODES } from './constants.js'
+import type { GameMode } from './constants.js'
 
 export { getLegalMoves, isInCheck } from './movement.js'
 export { isCheckmate } from './check.js'
 export type { GameState, Move, Position, Player, PieceType, Tower, Piece, Tier, PlayerState, GamePhase, GameStatus, MoveType } from './types.js'
+export { buildHybridState, buildMiniHybridState, buildNearCheckmateState, buildPreset } from './debugFixtures.js'
+export type { DebugPreset } from './debugFixtures.js'
+export type { GameMode, ModeConfig } from './constants.js'
+export { MODES, NORMAL_MODE, MINI_MODE } from './constants.js'
 
 // ─── Initial State Factory ────────────────────────────────────────────────────
 
 /**
- * Creates a fresh GameState with full piece reserves for both players.
+ * Creates a fresh GameState for the given mode. Default 'normal' keeps legacy
+ * callers (tests, older imports) working without changes.
  */
-export function createInitialState(): GameState {
-  const board: GameState['board'] = Array.from({ length: 9 }, () =>
-    Array.from({ length: 9 }, () => null)
+export function createInitialState(mode: GameMode = 'normal'): GameState {
+  const cfg = MODES[mode]
+  const size = cfg.boardSize
+
+  const board: GameState['board'] = Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => null)
   )
 
   const buildReserve = (): PieceType[] => {
     const reserve: PieceType[] = []
-    for (const [type, count] of Object.entries(PIECE_COUNTS) as [PieceType, number][]) {
+    for (const [type, count] of Object.entries(cfg.pieceCounts) as [PieceType, number][]) {
       for (let i = 0; i < count; i++) reserve.push(type)
     }
     return reserve
   }
 
   return {
+    mode,
     board,
     players: {
       black: { reserve: buildReserve(), placedCount: 0, onBoardCount: 0 },
@@ -99,7 +109,7 @@ function movesEqual(a: Move, b: Move): boolean {
 function executeMove(state: GameState, move: Move): GameState {
   const board = cloneBoard(state.board)
   const player = state.currentPlayer
-  const opponent: Player = player === 'black' ? 'white' : 'black'
+  let capturedMarshal = false
 
   const players = {
     black: {
@@ -150,32 +160,33 @@ function executeMove(state: GameState, move: Move): GameState {
     } else {
       const destTop = destTower[destTower.length - 1]!
 
-      if (destTop.owner === player) {
-        // Stack on friendly
+      if (move.type === 'stack') {
+        // Stack: push on top regardless of ownership — no removal
         destTower.push(movingPiece)
       } else {
-        // Capture enemy
-        // Remove enemy top piece
-        destTower.pop()
-        players[opponent].onBoardCount--
+        // Capture: remove top piece (enemy or self-capture)
+        const capturedOwner = destTop.owner
+        if (destTop.type === 'marshal') capturedMarshal = true
 
-        // Place moving piece on top (or create new tower)
+        destTower.pop()
+        players[capturedOwner].onBoardCount--
+
         if (destTower.length === 0) {
           board[to.row]![to.col] = [movingPiece]
         } else {
           destTower.push(movingPiece)
         }
 
-        // ── Spy mutual capture ──
-        // If moving piece is a Spy, it also dies after capturing
+        // Spy mutual capture — dies on ANY capture (friendly or enemy)
         if (movingPiece.type === 'spy') {
           const finalDestTower = board[to.row]![to.col]!
-          finalDestTower.pop() // remove the spy
+          finalDestTower.pop()
           if (finalDestTower.length === 0) board[to.row]![to.col] = null
           players[player].onBoardCount--
         }
       }
     }
+
   }
 
   // ── Phase Transition ──
@@ -203,12 +214,17 @@ function executeMove(state: GameState, move: Move): GameState {
   let gameStatus = state.gameStatus
   let winner = state.winner
 
-  if (newPhase === 'hybrid' && isCheckmate(tempState, nextTurnPlayer)) {
+  if (capturedMarshal) {
+    // Marshal taken — instant win
     gameStatus = 'checkmate'
-    winner = player // current player wins
+    winner = player
+  } else if (newPhase === 'hybrid' && isCheckmate(tempState, nextTurnPlayer)) {
+    gameStatus = 'checkmate'
+    winner = player
   }
 
   return {
+    mode: state.mode,
     board,
     players,
     currentPlayer: nextTurnPlayer,

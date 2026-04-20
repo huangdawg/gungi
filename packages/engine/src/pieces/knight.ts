@@ -1,5 +1,5 @@
 import type { Board, Position, Move, Player } from '../types.js'
-import { buildMove, inBounds, canLandOn } from '../moveUtils.js'
+import { buildMovesTo, inBounds } from '../moveUtils.js'
 
 /**
  * Knight (马):
@@ -34,18 +34,16 @@ export function getKnightMoves(
 
   for (const [dr, dc] of deltas) {
     const to: Position = { row: pos.row + dr, col: pos.col + dc }
-    if (!inBounds(to)) continue
-    if (!canLandOn(board, to, owner)) continue
-    moves.push(buildMove(board, pos, to, owner))
+    if (!inBounds(board, to)) continue
+    moves.push(...buildMovesTo(board, pos, to, owner))
   }
 
   // Tier 3: additionally hop exactly 3 squares orthogonally
   if (tier === 3) {
     for (const [dr, dc] of [[-3, 0], [3, 0], [0, -3], [0, 3]] as [number, number][]) {
       const to: Position = { row: pos.row + dr, col: pos.col + dc }
-      if (!inBounds(to)) continue
-      if (!canLandOn(board, to, owner)) continue
-      moves.push(buildMove(board, pos, to, owner))
+      if (!inBounds(board, to)) continue
+      moves.push(...buildMovesTo(board, pos, to, owner))
     }
   }
 

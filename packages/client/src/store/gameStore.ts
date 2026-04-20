@@ -39,10 +39,14 @@ export interface GameStore {
   // Room status
   waitingForOpponent: boolean
 
+  // Skip-to-hybrid vote state
+  mySkipVote: boolean
+  opponentSkipVote: boolean
+
   // Actions
   setRoomCode(code: string): void
   setPlayerColor(color: Player): void
-  setOpponentName(name: string): void
+  setOpponentName(name: string | null): void
   setSessionToken(token: string): void
   setGameState(state: GameState): void
   setWaitingForOpponent(waiting: boolean): void
@@ -56,6 +60,8 @@ export interface GameStore {
   addMessage(msg: Omit<ChatMessage, 'id'>): void
   setDrawOffered(val: boolean): void
   setDrawPending(val: boolean): void
+
+  setSkipVotes(votes: Player[]): void
 
   reset(): void
 }
@@ -78,6 +84,8 @@ export const useGameStore = create<GameStore>()(
     drawOffered: false,
     drawPending: false,
     waitingForOpponent: false,
+    mySkipVote: false,
+    opponentSkipVote: false,
 
     // ── Actions ──
 
@@ -214,6 +222,12 @@ export const useGameStore = create<GameStore>()(
         s.drawPending = val
       }),
 
+    setSkipVotes: (votes) =>
+      set((s) => {
+        s.mySkipVote = !!s.playerColor && votes.includes(s.playerColor)
+        s.opponentSkipVote = votes.some((c) => c !== s.playerColor)
+      }),
+
     reset: () =>
       set((s) => {
         s.gameState = null
@@ -226,6 +240,8 @@ export const useGameStore = create<GameStore>()(
         s.drawPending = false
         s.waitingForOpponent = false
         s.opponentName = null
+        s.mySkipVote = false
+        s.opponentSkipVote = false
       }),
   }))
 )

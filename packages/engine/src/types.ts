@@ -86,16 +86,21 @@ export type GameStatus = 'active' | 'checkmate' | 'resigned' | 'draw'
 // ─── Game State ──────────────────────────────────────────────────────────────
 
 export interface GameState {
+  /** Which rule variant this game is playing under. Defaults to 'normal' when omitted by legacy callers. */
+  mode: GameMode
   board: Board
   players: {
     black: PlayerState
     white: PlayerState
   }
   currentPlayer: Player
-  /** Phase transitions once BOTH players have placed >= 15 pieces */
+  /** Phase transitions once BOTH players have placed the mode's placement threshold. */
   phase: GamePhase
   /** Increments after each completed turn */
   turnNumber: number
   gameStatus: GameStatus
   winner: Player | null
 }
+
+// Import kept at the bottom so the file's primary export block reads top-to-bottom.
+import type { GameMode } from './constants.js'

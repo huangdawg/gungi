@@ -27,7 +27,7 @@ export function getFortressMoves(
 
   for (const [dr, dc] of directions) {
     const to: Position = { row: pos.row + dr, col: pos.col + dc }
-    if (!inBounds(to)) continue
+    if (!inBounds(board, to)) continue
 
     const tower = board[to.row]?.[to.col] ?? null
     if (!tower) {

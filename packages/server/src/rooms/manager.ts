@@ -1,4 +1,5 @@
 import { createInitialState } from '@gungi/engine'
+import type { GameMode } from '@gungi/engine'
 import type { Room, Player, PlayerColor, RoomStatus } from './types.js'
 
 // ─── Room Manager ─────────────────────────────────────────────────────────────
@@ -32,22 +33,26 @@ export interface CreateRoomOptions {
   gameId: string
   creatorUserId: string
   creatorDisplayName: string
+  mode?: GameMode
 }
 
 export function createRoom(opts: CreateRoomOptions): Room {
   const roomCode = generateRoomCode()
+  const mode: GameMode = opts.mode ?? 'normal'
 
   const room: Room = {
     roomCode,
     gameId: opts.gameId,
+    mode,
     status: 'waiting',
     players: {
       black: null,
       white: null,
     },
-    gameState: createInitialState(),
+    gameState: createInitialState(mode),
     moveHistory: [],
     pendingDrawOffer: null,
+    pendingSkipVotes: new Set(),
     createdAt: Date.now(),
   }
 

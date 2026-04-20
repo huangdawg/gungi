@@ -1,11 +1,12 @@
 import type { Board, Position, Move, Player } from '../types.js'
-import { buildMove, inBounds, canLandOn } from '../moveUtils.js'
+import { buildMove, buildMovesTo, inBounds } from '../moveUtils.js'
 import { FORWARD_DIRECTION } from '../constants.js'
 
 /**
  * Major (中):
- * - Move:    1 square forward OR 1 square backward (vertical only)
- * - Capture: 1 square diagonally forward OR 1 square diagonally backward
+ * - Move:    1 square forward (orthogonal)
+ *            Any occupied destination offers stack-or-capture choice.
+ * - Capture: 1 square diagonally forward (enemy only)
  * Same at all tiers.
  */
 export function getMajorMoves(
@@ -17,31 +18,24 @@ export function getMajorMoves(
   const moves: Move[] = []
   const fwd = FORWARD_DIRECTION[owner]
 
-  // Move squares: straight forward and backward
-  for (const dir of [fwd, -fwd]) {
-    const to: Position = { row: pos.row + dir, col: pos.col }
-    if (!inBounds(to)) continue
-    const tower = board[to.row]?.[to.col] ?? null
-    const top = tower ? tower[tower.length - 1] : null
-    // Only move (no capture) in orthogonal directions
-    if (!top || top.owner === owner) {
-      if (canLandOn(board, to, owner)) {
-        moves.push(buildMove(board, pos, to, owner))
-      }
-    }
+  // Movement square: 1 forward (orthogonal). Majors never capture orthogonally —
+  // only move to empty or stack on friendly. Enemy directly ahead is not a legal
+  // target; captures happen only via the diagonal below.
+  const forwardPos: Position = { row: pos.row + fwd, col: pos.col }
+  if (inBounds(board, forwardPos)) {
+    const options = buildMovesTo(board, pos, forwardPos, owner)
+    moves.push(...options.filter((m) => m.type !== 'capture'))
   }
 
-  // Capture squares: diagonally forward and backward
-  for (const dir of [fwd, -fwd]) {
-    for (const dc of [-1, 1]) {
-      const capPos: Position = { row: pos.row + dir, col: pos.col + dc }
-      if (!inBounds(capPos)) continue
-      const tower = board[capPos.row]?.[capPos.col] ?? null
-      if (!tower) continue
-      const top = tower[tower.length - 1]
-      if (top && top.owner !== owner) {
-        moves.push(buildMove(board, pos, capPos, owner))
-      }
+  // Capture-only squares: diagonally forward (enemy pieces only)
+  for (const dc of [-1, 1]) {
+    const capPos: Position = { row: pos.row + fwd, col: pos.col + dc }
+    if (!inBounds(board, capPos)) continue
+    const tower = board[capPos.row]?.[capPos.col] ?? null
+    if (!tower) continue
+    const top = tower[tower.length - 1]
+    if (top && top.owner !== owner) {
+      moves.push(buildMove(board, pos, capPos, owner))
     }
   }
 

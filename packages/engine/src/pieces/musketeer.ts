@@ -1,14 +1,12 @@
 import type { Board, Position, Move, Player } from '../types.js'
-import { buildMove, inBounds, canLandOn } from '../moveUtils.js'
+import { buildMovesTo, inBounds } from '../moveUtils.js'
 import { FORWARD_DIRECTION } from '../constants.js'
 
 /**
  * Musketeer (筒):
- * - Move+Capture: any number of squares forward only (like a forward-only rook ray).
- *   No backward, no sideways.
+ * - Forward: slides any number of squares (stops on occupied, stack-or-capture offered).
+ * - Backward: 1 square diagonally (backward-left or backward-right).
  * Same at all tiers.
- *
- * Sliding piece — stops when it hits an occupied square (capture or stack).
  */
 export function getMusketeeerMoves(
   board: Board,
@@ -19,22 +17,23 @@ export function getMusketeeerMoves(
   const moves: Move[] = []
   const fwd = FORWARD_DIRECTION[owner]
 
+  // Forward slide
   let r = pos.row + fwd
   const c = pos.col
-
-  while (inBounds({ row: r, col: c })) {
+  while (inBounds(board, { row: r, col: c })) {
     const to: Position = { row: r, col: c }
-    if (!canLandOn(board, to, owner)) break
-
-    const tower = board[r]?.[c] ?? null
-    const top = tower ? tower[tower.length - 1] : null
-
-    moves.push(buildMove(board, pos, to, owner))
-
-    // Stop sliding after hitting any occupied square
-    if (top) break
-
+    const options = buildMovesTo(board, pos, to, owner)
+    if (options.length === 0) break
+    moves.push(...options)
+    if (board[r]?.[c]) break
     r += fwd
+  }
+
+  // Backward diagonals — 1 square
+  for (const dc of [-1, 1]) {
+    const to: Position = { row: pos.row - fwd, col: pos.col + dc }
+    if (!inBounds(board, to)) continue
+    moves.push(...buildMovesTo(board, pos, to, owner))
   }
 
   return moves

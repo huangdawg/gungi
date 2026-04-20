@@ -22,7 +22,7 @@ export const ReserveSlot: React.FC<ReserveSlotProps> = ({
   if (count === 0 && !selected) {
     return (
       <div className="flex flex-col items-center gap-1 opacity-25 cursor-not-allowed select-none">
-        <PieceToken type={type} owner={owner} height={1} size={40} reserve />
+        <PieceToken type={type} owner={owner} height={1} size={52} reserve />
         <span className="text-xs text-amber-200/50">0</span>
       </div>
     )
@@ -44,7 +44,7 @@ export const ReserveSlot: React.FC<ReserveSlotProps> = ({
         type={type}
         owner={owner}
         height={1}
-        size={40}
+        size={52}
         selected={selected}
         reserve
       />

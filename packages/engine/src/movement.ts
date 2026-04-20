@@ -1,6 +1,6 @@
 import type { GameState, Position, Move, Player, PieceType } from './types.js'
 import { getTopPiece, getTier, buildPlaceMove } from './moveUtils.js'
-import { HOME_ROWS, MAX_ON_BOARD } from './constants.js'
+import { MODES, homeRowsFor } from './constants.js'
 
 import { getMarshalMoves } from './pieces/marshal.js'
 import { getPawnMoves } from './pieces/pawn.js'
@@ -63,8 +63,9 @@ export function getLegalMoves(state: GameState): Move[] {
 
   // 2. Board moves (if in hybrid phase, or... placement phase = no board moves)
   if (state.phase === 'hybrid') {
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
+    const size = state.board.length
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
         const tower = state.board[r]?.[c] ?? null
         if (!tower) continue
         const top = getTopPiece(tower)
@@ -77,85 +78,88 @@ export function getLegalMoves(state: GameState): Move[] {
     }
   }
 
-  // 3. Filter: remove moves that leave own Marshal in check
-  return moves.filter(move => !moveLeavesInCheck(state, move, player))
+  // No check filter — the Marshal may move into check (or be abandoned to check).
+  // A player who leaves their Marshal exposed simply loses on the next capture.
+  return moves
 }
 
 // ─── Placement Move Generation ────────────────────────────────────────────────
 
 /**
  * Returns all valid placement (drop) moves for a player.
- * Rules:
- * - Player must have pieces in reserve.
- * - Must not exceed MAX_ON_BOARD on-board count.
- * - Pawns: anywhere on the board (any empty or stackable friendly square).
- *   - Not into a file that already has a friendly pawn.
- *   - Not to give check/checkmate (filtered later via moveLeavesInCheck for check;
- *     pawnDropGivesCheck is a separate check for checkmate-by-drop).
- * - Non-pawns: only in own first 3 rows.
- * - Can stack on friendly towers (height < 3).
- * - Cannot place on enemy-occupied squares.
- * - Cannot place on Fortresses.
- * - Phase: placement phase → only if this player's placedCount < 15.
- *          hybrid phase → always allowed (if pieces in reserve and room).
+ *
+ * Placement zones:
+ *   - Placement phase (initial setup): ALL pieces — pawns and non-pawns alike —
+ *     must be dropped in the player's own home rows. This keeps the opening
+ *     structured and prevents early-turn sneaky pawn drops deep in enemy territory.
+ *   - Hybrid phase:
+ *       - Pawns: anywhere on the board (empty or stackable friendly).
+ *       - Non-pawns: own home rows, OR on top of one of your own pawns anywhere
+ *         on the board. The advanced-pawn-as-beachhead rule: pawns you've pushed
+ *         forward serve as deployment points for reinforcements.
+ *
+ * Other constraints (both phases):
+ *   - Cannot drop on enemy-occupied squares.
+ *   - Cannot stack on a marshal (friendly or enemy).
+ *   - Can stack on own fortress (fortress is uncapturable but supports friendly stacks).
+ *   - Tower height capped at MAX_TOWER_HEIGHT.
+ *   - Must have pieces in reserve; onBoardCount < mode's maxOnBoard.
+ *   - Marshal must be the first piece placed.
  */
 function getPlacementMoves(state: GameState, player: Player): Move[] {
   const playerState = state.players[player]
+  const cfg = MODES[state.mode]
+  const size = state.board.length
 
   // Check if placement is allowed this turn
-  if (state.phase === 'placement' && playerState.placedCount >= 15) return []
-  if (playerState.onBoardCount >= MAX_ON_BOARD) return []
+  if (state.phase === 'placement' && playerState.placedCount >= cfg.placementThreshold) return []
+  if (playerState.onBoardCount >= cfg.maxOnBoard) return []
 
   const reserve = playerState.reserve
   if (reserve.length === 0) return []
 
-  // Deduplicate piece types to avoid redundant moves
-  const uniqueTypes = Array.from(new Set(reserve)) as PieceType[]
+  // Marshal must be placed first
+  const uniqueTypes: PieceType[] = playerState.placedCount === 0
+    ? (reserve.includes('marshal') ? ['marshal'] : [])
+    : (Array.from(new Set(reserve)) as PieceType[])
 
-  const homeRows = HOME_ROWS[player]
+  const homeRows = homeRowsFor(state.mode, player)
+  const inHome = (r: number) => homeRows.includes(r)
+  const isPlacementPhase = state.phase === 'placement'
   const moves: Move[] = []
-
-  // Find files that already have a friendly pawn (for pawn restriction)
-  const friendlyPawnFiles = new Set<number>()
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
-      const tower = state.board[r]?.[c] ?? null
-      if (!tower) continue
-      // Check ALL pieces in the tower for friendly pawns, not just the top
-      for (const piece of tower) {
-        if (piece.owner === player && piece.type === 'pawn') {
-          friendlyPawnFiles.add(c)
-          break
-        }
-      }
-    }
-  }
 
   for (const pieceType of uniqueTypes) {
     const isPawn = pieceType === 'pawn'
 
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 9; c++) {
-        // Pawn placement zone: anywhere; non-pawn: own first 3 rows
-        if (!isPawn && !homeRows.includes(r)) continue
-
-        // Pawn file restriction: cannot place in file with friendly pawn
-        if (isPawn && friendlyPawnFiles.has(c)) continue
-
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
         const pos: Position = { row: r, col: c }
         const tower = state.board[r]?.[c] ?? null
+        const top = tower ? getTopPiece(tower) : null
 
+        // ── Zone check ──
+        if (isPlacementPhase) {
+          // Initial setup: everything restricted to home rows.
+          if (!inHome(r)) continue
+        } else {
+          // Hybrid phase.
+          if (!isPawn && !inHome(r)) {
+            // Non-pawn outside home rows: only legal if landing on an own pawn
+            // (the advanced-pawn-as-beachhead rule).
+            if (!top || top.owner !== player || top.type !== 'pawn') continue
+          }
+          // Pawns in hybrid: anywhere (no extra zone check).
+        }
+
+        // ── Square/tower state check (unchanged across phases) ──
         if (!tower) {
-          // Empty square: always valid
           moves.push(buildPlaceMove(pieceType, pos))
         } else {
-          // Must be friendly tower with room
-          const top = getTopPiece(tower)
           if (!top) continue
           if (top.owner !== player) continue // cannot place on enemy
-          if (top.type === 'fortress') continue // cannot place on fortress (it can't be captured)
+          if (top.type === 'marshal') continue // cannot stack on marshal
+          // Own fortress is OK — friendly pieces may be dropped on top.
           if (tower.length >= 3) continue // tower full
-
           moves.push(buildPlaceMove(pieceType, pos))
         }
       }
@@ -166,16 +170,6 @@ function getPlacementMoves(state: GameState, player: Player): Move[] {
 }
 
 // ─── Check Helpers ────────────────────────────────────────────────────────────
-
-/**
- * Returns true if applying `move` would leave `player`'s Marshal in check.
- * Used to filter illegal moves.
- */
-function moveLeavesInCheck(state: GameState, move: Move, player: Player): boolean {
-  // Apply move tentatively
-  const newState = applyMoveNoValidation(state, move)
-  return isInCheck(newState, player)
-}
 
 /**
  * Apply a move without validation — used internally for check detection.
@@ -222,13 +216,14 @@ export function applyMoveNoValidation(state: GameState, move: Move): GameState {
       board[to.row]![to.col] = [movingPiece]
     } else {
       const destTop = destTower[destTower.length - 1]!
-      if (destTop.owner === player) {
-        // Stack on friendly
+      if (move.type === 'stack') {
+        // Stack: push on top regardless of ownership — no removal
         destTower.push(movingPiece)
       } else {
-        // Capture: remove enemy top piece
+        // Capture: remove top piece (enemy or self-capture)
+        const capturedOwner = destTop.owner
         destTower.pop()
-        players[destTop.owner].onBoardCount--
+        players[capturedOwner].onBoardCount--
 
         if (destTower.length === 0) {
           board[to.row]![to.col] = [movingPiece]
@@ -236,10 +231,10 @@ export function applyMoveNoValidation(state: GameState, move: Move): GameState {
           destTower.push(movingPiece)
         }
 
-        // Handle spy: if moving piece is a spy, it also dies after capturing
+        // Spy mutual capture: spy also removed on ANY capture (friendly or enemy)
         if (movingPiece.type === 'spy') {
           const currentDest = board[to.row]![to.col]!
-          currentDest.pop() // remove the spy that was just placed
+          currentDest.pop()
           if (currentDest.length === 0) board[to.row]![to.col] = null
           players[player].onBoardCount--
         }
@@ -266,9 +261,10 @@ export function isInCheck(state: GameState, player: Player): boolean {
 
   // Check if any enemy piece can attack the Marshal position
   const opponent: Player = player === 'black' ? 'white' : 'black'
+  const size = state.board.length
 
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
       const tower = state.board[r]?.[c] ?? null
       if (!tower) continue
       const top = getTopPiece(tower)
@@ -291,8 +287,9 @@ export function isInCheck(state: GameState, player: Player): boolean {
 }
 
 export function findMarshal(board: GameState['board'], player: Player): Position | null {
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) {
+  const size = board.length
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
       const tower = board[r]?.[c] ?? null
       if (!tower) continue
       const top = getTopPiece(tower)

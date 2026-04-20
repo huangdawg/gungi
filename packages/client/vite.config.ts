@@ -12,13 +12,17 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Bind on all interfaces so LAN devices and ngrok tunnels can reach the dev server.
+    host: true,
+    // Allow ngrok-style rotating hostnames (and any LAN host) to load the app.
+    allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3001',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         ws: true,
       },

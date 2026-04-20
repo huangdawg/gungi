@@ -12,8 +12,10 @@ import {
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
+  // better-auth expects "name" as the canonical identity field
+  name: text('name'),
   email: text('email').unique(),
-  displayName: text('display_name').notNull(),
+  displayName: text('display_name'),
   isAnonymous: boolean('is_anonymous').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

@@ -40,7 +40,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
   return (
     <div
-      className="flex flex-col rounded-lg border border-amber-700/30 overflow-hidden"
+      className="flex flex-col rounded-lg border border-amber-700/30 overflow-hidden min-h-0 flex-1"
       style={{ background: 'linear-gradient(160deg, #1A0E00 0%, #120A00 100%)' }}
     >
       {/* Header */}
@@ -55,8 +55,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
       {!collapsed && (
         <>
-          {/* Messages */}
-          <div className="flex flex-col gap-2 px-3 py-2 overflow-y-auto" style={{ minHeight: 120, maxHeight: 200 }}>
+          {/* Messages — fills whatever vertical space the column has left */}
+          <div className="flex flex-col gap-2 px-3 py-2 overflow-y-auto flex-1 min-h-0">
             {messages.length === 0 && (
               <p className="text-xs text-amber-200/30 text-center mt-4">No messages yet</p>
             )}

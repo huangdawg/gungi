@@ -3,13 +3,14 @@ import type { Server as HTTPServer } from 'http'
 import { registerRoomHandlers } from './handlers/room.js'
 import { registerGameHandlers } from './handlers/game.js'
 import { registerChatHandlers } from './handlers/chat.js'
+import { socketOriginResolver } from '../cors.js'
 
 // ─── Socket.IO server setup ───────────────────────────────────────────────────
 
 export function createSocketServer(httpServer: HTTPServer): Server {
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL ?? 'http://localhost:5173',
+      origin: socketOriginResolver,
       methods: ['GET', 'POST'],
       credentials: true,
     },

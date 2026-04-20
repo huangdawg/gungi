@@ -1,34 +1,50 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameStore } from '../../store/gameStore'
+import { apiUrl } from '../../config'
+import { ensureGuestSession } from '../../api/session'
+import { ModePicker } from '../ModePicker/ModePicker'
+import type { GameMode } from '@gungi/engine'
+
+// ─── Ukiyo-e background ───────────────────────────────────────────────────────
+
+/** Ancient Japan art backdrop — translucent image with vignette for card readability. */
+const UkiyoeBackdrop: React.FC = () => (
+  <div className="pointer-events-none absolute inset-0 overflow-hidden select-none">
+    {/* Background image, translucent */}
+    <img
+      src="/japan-background.webp"
+      alt=""
+      className="absolute inset-0 w-full h-full object-cover"
+      style={{ opacity: 0.45 }}
+    />
+    {/* Warm dark tint — gives the image a sunset/ink mood and anchors the amber UI */}
+    <div
+      className="absolute inset-0"
+      style={{
+        background:
+          'linear-gradient(180deg, rgba(20,10,2,0.55) 0%, rgba(30,15,5,0.35) 45%, rgba(15,8,2,0.65) 100%)',
+      }}
+    />
+    {/* Vignette to focus the center card */}
+    <div
+      className="absolute inset-0"
+      style={{
+        background:
+          'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)',
+      }}
+    />
+  </div>
+)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function ensureGuestSession(): Promise<string> {
-  // Check existing token in localStorage
-  const existing = localStorage.getItem('gungi-session-token')
-  if (existing) return existing
-
-  // Create anonymous session via better-auth
-  const res = await fetch('/api/auth/sign-in/anonymous', {
+async function createRoom(mode: GameMode): Promise<string> {
+  const res = await fetch(apiUrl('/api/rooms'), {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({}),
-  })
-
-  if (!res.ok) throw new Error('Failed to create guest session')
-
-  const data = await res.json()
-  const token: string = data.token ?? data.session?.token ?? ''
-  if (token) localStorage.setItem('gungi-session-token', token)
-  return token
-}
-
-async function createRoom(): Promise<string> {
-  const res = await fetch('/api/rooms', {
-    method: 'POST',
-    credentials: 'include',
+    body: JSON.stringify({ mode }),
   })
   if (!res.ok) throw new Error('Failed to create room')
   const data = await res.json()
@@ -45,6 +61,8 @@ export const CreateRoom: React.FC = () => {
   const [joinCode, setJoinCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Which flow the mode picker will feed into once a mode is chosen. */
+  const [pickerFor, setPickerFor] = useState<'create' | 'local' | null>(null)
 
   // Initialize guest session on mount
   useEffect(() => {
@@ -53,13 +71,30 @@ export const CreateRoom: React.FC = () => {
       .catch((err) => console.error('Session init error:', err))
   }, [setSessionToken])
 
-  const handleCreate = async () => {
-    setLoading(true)
+  const handleCreate = () => {
     setError(null)
+    setPickerFor('create')
+  }
+
+  const handleLocal = () => {
+    setError(null)
+    setPickerFor('local')
+  }
+
+  const handleModePick = async (mode: GameMode) => {
+    const target = pickerFor
+    setPickerFor(null)
+    if (!target) return
+    if (target === 'local') {
+      navigate(`/local?mode=${mode}`)
+      return
+    }
+    // target === 'create'
+    setLoading(true)
     try {
       const token = await ensureGuestSession()
       setSessionToken(token)
-      const roomCode = await createRoom()
+      const roomCode = await createRoom(mode)
       navigate(`/room/${roomCode}`, { state: { displayName: displayName || 'Guest' } })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
@@ -89,26 +124,40 @@ export const CreateRoom: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center"
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
       style={{
-        background: 'linear-gradient(160deg, #1A0E00 0%, #0D0700 100%)',
+        background:
+          'linear-gradient(180deg, #1B0E05 0%, #2A1408 32%, #54261A 60%, #7A3521 82%, #3A1A09 100%)',
       }}
     >
+      {pickerFor !== null && (
+        <ModePicker onPick={handleModePick} onCancel={() => setPickerFor(null)} />
+      )}
+
+      {/* ── Ancient Japan ukiyo-e backdrop ── */}
+      <UkiyoeBackdrop />
+
       {/* Title */}
-      <div className="flex flex-col items-center mb-10">
+      <div className="relative z-10 flex flex-col items-center mb-10">
         <h1
-          className="text-5xl font-bold text-amber-400 mb-2"
-          style={{ fontFamily: "'Noto Serif SC', serif" }}
+          className="text-5xl font-bold text-amber-200 mb-2"
+          style={{
+            fontFamily: "'Noto Serif SC', serif",
+            textShadow: '0 2px 12px rgba(0,0,0,0.75), 0 0 24px rgba(255,170,90,0.25)',
+          }}
         >
           軍儀
         </h1>
-        <p className="text-amber-200/60 text-lg tracking-widest uppercase">Gungi Online</p>
+        <p className="text-amber-100/80 text-lg tracking-widest uppercase"
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
+          Gungi Online
+        </p>
       </div>
 
       {/* Card */}
       <div
-        className="w-full max-w-sm flex flex-col gap-6 px-8 py-8 rounded-2xl border border-amber-700/30 shadow-2xl"
-        style={{ background: 'linear-gradient(160deg, #2D1A06 0%, #1A0E00 100%)' }}
+        className="relative z-10 w-full max-w-sm flex flex-col gap-6 px-8 py-8 rounded-2xl border border-amber-700/40 shadow-2xl backdrop-blur-sm"
+        style={{ background: 'linear-gradient(160deg, rgba(45,26,6,0.88) 0%, rgba(26,14,0,0.88) 100%)' }}
       >
         {/* Display name */}
         <div className="flex flex-col gap-2">
@@ -182,7 +231,7 @@ export const CreateRoom: React.FC = () => {
 
         {/* Local play */}
         <button
-          onClick={() => navigate('/local')}
+          onClick={handleLocal}
           className="w-full py-3 rounded-lg bg-stone-700/60 hover:bg-stone-600/60
             text-amber-200/70 font-semibold text-sm tracking-wide transition-colors border border-amber-700/20"
         >

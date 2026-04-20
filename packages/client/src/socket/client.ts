@@ -1,7 +1,8 @@
 import { io, Socket } from 'socket.io-client'
-import type { GameState, Move } from '@gungi/engine'
+import type { GameState, Move, DebugPreset } from '@gungi/engine'
 import type { Player } from '@gungi/engine'
 import { useGameStore } from '../store/gameStore'
+import { API_URL } from '../config'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -10,6 +11,7 @@ interface RoomJoinedPayload {
   color: Player
   roomCode: string
   isReconnect: boolean
+  opponentName: string | null
 }
 
 interface GameStatePayload {
@@ -39,10 +41,12 @@ let gameOverCallback: ((payload: GameOverPayload) => void) | null = null
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io('/', {
-      withCredentials: true,
-      autoConnect: false,
-    })
+    // Empty API_URL → same-origin (Vite proxy in local dev). Otherwise connect
+    // to the configured server origin and send credentials so the auth cookie
+    // survives cross-origin.
+    socket = API_URL
+      ? io(API_URL, { withCredentials: true, autoConnect: false, transports: ['websocket', 'polling'] })
+      : io('/', { withCredentials: true, autoConnect: false })
     attachHandlers(socket)
   }
   return socket
@@ -70,7 +74,8 @@ function attachHandlers(sock: Socket): void {
     s.setGameState(payload.gameState)
     s.setPlayerColor(payload.color)
     s.setRoomCode(payload.roomCode)
-    s.setWaitingForOpponent(payload.gameState.players.black === null || payload.gameState.players.white === null)
+    s.setOpponentName(payload.opponentName)
+    s.setWaitingForOpponent(payload.opponentName === null)
   })
 
   sock.on('room:opponent-joined', (payload: { displayName: string }) => {
@@ -103,6 +108,10 @@ function attachHandlers(sock: Socket): void {
   sock.on('game:draw-declined', () => {
     store().setDrawPending(false)
     store().setDrawOffered(false)
+  })
+
+  sock.on('room:skip-vote', (payload: { votes: Player[] }) => {
+    store().setSkipVotes(payload.votes)
   })
 
   sock.on('chat:message', (payload: ChatMessagePayload) => {
@@ -155,6 +164,24 @@ export function emitDrawDecline(): void {
 export function emitChatMessage(text: string): void {
   const sock = getSocket()
   sock.emit('chat:message', { text })
+}
+
+/** Dev-only: ask the server to fast-forward the room to a preset state. */
+export function emitDebugSetState(preset: DebugPreset): void {
+  const sock = getSocket()
+  sock.emit('debug:set-state', { preset })
+}
+
+/** Vote to skip placement and fast-forward to the hybrid setup. Both players must vote. */
+export function emitRequestSkip(): void {
+  const sock = getSocket()
+  sock.emit('room:request-skip')
+}
+
+/** Withdraw a pending skip vote. */
+export function emitCancelSkip(): void {
+  const sock = getSocket()
+  sock.emit('room:cancel-skip')
 }
 
 export function disconnectSocket(): void {

@@ -13,11 +13,22 @@ router.post('/', async (c) => {
     const gameId = randomUUID()
     const baseUrl = process.env.BASE_URL ?? 'http://localhost:3001'
 
+    // Accept optional { mode: 'normal' | 'mini' } in the body — default 'normal'
+    // if the body is missing or malformed.
+    let mode: 'normal' | 'mini' = 'normal'
+    try {
+      const body = await c.req.json<{ mode?: 'normal' | 'mini' }>()
+      if (body?.mode === 'mini' || body?.mode === 'normal') mode = body.mode
+    } catch {
+      /* empty body is fine */
+    }
+
     // Create in-memory room
     const room = createRoom({
       gameId,
       creatorUserId: '', // Will be set on socket join
       creatorDisplayName: '',
+      mode,
     })
 
     // Persist to DB
@@ -29,6 +40,7 @@ router.post('/', async (c) => {
 
     return c.json({
       roomCode: room.roomCode,
+      mode: room.mode,
       shareUrl: `${baseUrl}/room/${room.roomCode}`,
     })
   } catch (err) {

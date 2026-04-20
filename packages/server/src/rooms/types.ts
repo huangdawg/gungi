@@ -1,4 +1,4 @@
-import type { GameState } from '@gungi/engine'
+import type { GameState, GameMode } from '@gungi/engine'
 
 // ─── Room / Player types ──────────────────────────────────────────────────────
 
@@ -32,6 +32,8 @@ export interface Room {
   roomCode: string
   /** Database game ID (set when game record is created) */
   gameId: string
+  /** Which rule variant this room is playing — 'normal' (9x9) or 'mini' (5x5). */
+  mode: GameMode
   status: RoomStatus
   players: {
     black: Player | null
@@ -43,6 +45,8 @@ export interface Room {
   moveHistory: string[]
   /** Pending draw offer, if any */
   pendingDrawOffer: DrawOffer | null
+  /** Players who have voted to fast-forward to the hybrid preset. Cleared on apply. */
+  pendingSkipVotes: Set<PlayerColor>
   createdAt: number
 }
 
