@@ -12,6 +12,9 @@ interface BoardProps {
   legalMoves: Move[]
   lastMove: { from: Position | null; to: Position } | null
   onCellClick: (pos: Position) => void
+  /** Optional cap on cell size (default 80). Tutorial uses this to leave
+   *  room for the narrative pane without overflowing the page. */
+  maxCellSize?: number
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -23,23 +26,24 @@ export const Board: React.FC<BoardProps> = ({
   legalMoves,
   lastMove,
   onCellClick,
+  maxCellSize = 80,
 }) => {
   const { board } = gameState
   const boardSize = board.length
 
   const [cellSize, setCellSize] = useState(() => {
     const available = window.innerHeight - 148
-    return Math.max(50, Math.min(80, Math.floor(available / boardSize)))
+    return Math.max(50, Math.min(maxCellSize, Math.floor(available / boardSize)))
   })
 
   useEffect(() => {
     const update = () => {
       const available = window.innerHeight - 148
-      setCellSize(Math.max(50, Math.min(80, Math.floor(available / boardSize))))
+      setCellSize(Math.max(50, Math.min(maxCellSize, Math.floor(available / boardSize))))
     }
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
-  }, [boardSize])
+  }, [boardSize, maxCellSize])
 
   const flipped = playerColor === 'black'
   const range = Array.from({ length: boardSize }, (_, i) => i)

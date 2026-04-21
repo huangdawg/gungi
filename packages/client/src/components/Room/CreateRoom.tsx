@@ -251,10 +251,10 @@ export const CreateRoom: React.FC = () => {
             player has already chosen; question-mark placeholder otherwise. */}
         {(() => {
           const style = tutorialTeacher === 'meruem'
-            ? { kanji: '王', color: '#A24040', label: 'Resume with Meruem', tagline: "Resume your tutorial — the King awaits." }
+            ? { kanji: '王', color: '#C04848', label: 'Resume with Meruem', tagline: 'Resume your tutorial — the King awaits.' }
             : tutorialTeacher === 'komugi'
-            ? { kanji: '盲', color: '#E8C87C', label: 'Resume with Komugi', tagline: "Resume your tutorial — Komugi is waiting." }
-            : { kanji: '?',  color: '#7FA8C9', label: 'New to Gungi?',      tagline: 'Learn to play — guided lessons from Komugi or Meruem.' }
+            ? { kanji: '盲', color: '#E8C87C', label: 'Resume with Komugi', tagline: 'Resume your tutorial — Komugi is waiting.' }
+            : { kanji: '?',  color: '#E8B860', label: 'New to Gungi?',      tagline: 'Learn to play — guided lessons from Komugi or Meruem.' }
           return (
             <button
               onClick={() => navigate('/tutorial')}
@@ -278,7 +278,7 @@ export const CreateRoom: React.FC = () => {
                 <span className="text-sm font-semibold leading-tight" style={{ color: style.color }}>
                   {style.label}
                 </span>
-                <span className="text-xs text-amber-300/70 leading-tight">
+                <span className="text-xs leading-tight" style={{ color: `${style.color}b3` }}>
                   {style.tagline}
                 </span>
               </div>

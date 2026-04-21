@@ -40,12 +40,20 @@ export interface TutorialLesson {
    */
   isComplete?: (state: GameState) => boolean
   /**
-   * Optional gentle correction when a move was accepted by `isValidMove` but
-   * didn't satisfy `isComplete` — e.g. the player stacked when the lesson
-   * asked them to capture. Shown in place of the intro narrative until the
-   * player either makes the correct move or resets the lesson.
+   * Shown in place of the intro narrative when a move was accepted by
+   * `isValidMove` but didn't satisfy `isComplete`. The lesson is then locked
+   * — the player cannot make further moves until they press Start over. If
+   * omitted, a generic per-teacher message is used.
    */
   softHint?: TeacherLines | ((move: Move, state: GameState) => TeacherLines | undefined)
+
+  /**
+   * When true, a confirm modal is shown for any move onto an occupied
+   * square — even if only one move-type is legal. Used after Chapter 3's
+   * stack-or-capture lesson introduces the choice, so players build the
+   * habit of confirming their intent (as in a real game).
+   */
+  confirmAllOccupied?: boolean
 }
 
 export interface TutorialProgress {

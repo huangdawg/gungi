@@ -7,20 +7,13 @@ import type { TutorialLesson } from './types'
 type Placement = {
   row: number
   col: number
-  /** Bottom-to-top stack; the last entry is the active (top) piece. */
   stack: Array<{ type: PieceType; owner: Player }>
 }
 
-/**
- * Construct an ad-hoc GameState for a lesson. Handles reserve drain and
- * on-board-count bookkeeping so the engine's legal-move generator works
- * consistently. Assumes normal (9×9) mode.
- */
 function buildState(opts: {
   phase: 'setup' | 'game'
   currentPlayer?: Player
   placements: Placement[]
-  /** Override placedCount per side. Defaults to #pieces on board per side. */
   blackPlaced?: number
   whitePlaced?: number
 }): GameState {
@@ -82,9 +75,15 @@ function topPiece(state: GameState, row: number, col: number) {
 // ─── Lessons ──────────────────────────────────────────────────────────────────
 
 /**
- * Full 6-chapter tutorial. Komugi = gentle, humble, mild stutter on hard
- * concepts. Meruem = precise, imperious, rewards correct play with clipped
- * approval. Each narrative kept to ~4 sentences so the board stays in focus.
+ * Tutorial design:
+ *   • Interactive lessons restrict WHICH piece the player can select (via
+ *     isValidMove on move.from), but not which move-type. The player sees
+ *     the piece's full real-game repertoire.
+ *   • If the resulting state fails isComplete, the lesson locks — the
+ *     player is shown a per-teacher soft hint and must press Start over.
+ *   • Chapters 4-6 set `confirmAllOccupied` so any move onto an occupied
+ *     square prompts the stack-vs-capture modal, reinforcing the habit
+ *     taught in ch3-l7.
  */
 export const LESSONS: TutorialLesson[] = [
   // ─── Chapter 1: Orientation ────────────────────────────────────────────────
@@ -255,7 +254,6 @@ export const LESSONS: TutorialLesson[] = [
       whitePlaced: 15,
     }),
     isValidMove: (move, state) => {
-      if (move.type !== 'move') return false
       if (!move.from) return false
       return topPiece(state, move.from.row, move.from.col)?.type === 'marshal'
     },
@@ -292,7 +290,6 @@ export const LESSONS: TutorialLesson[] = [
       whitePlaced: 15,
     }),
     isValidMove: (move, state) => {
-      if (move.type !== 'move') return false
       if (!move.from) return false
       return topPiece(state, move.from.row, move.from.col)?.type === 'major'
     },
@@ -308,9 +305,9 @@ export const LESSONS: TutorialLesson[] = [
     title: "The Major's strike",
     intro: {
       komugi:
-        "The Major captures on its forward diagonals — not straight ahead. So an enemy directly in front of your Major is safe… but one diagonal ahead isn't.\n\nCapture the enemy Pawn on your diagonal.",
+        "The Major captures on its forward diagonals — not straight ahead. An enemy directly in front is safe from the Major, but one diagonal ahead is fair game.\n\nCapture one of the enemy Pawns on your diagonals.",
       meruem:
-        "The Major's capture is diagonal-forward only — never straight. Take the enemy on your diagonal.",
+        "The Major's capture is diagonal-forward only — never straight. Take an enemy on your diagonal.",
     },
     outro: {
       komugi:
@@ -331,9 +328,14 @@ export const LESSONS: TutorialLesson[] = [
       whitePlaced: 15,
     }),
     isValidMove: (move, state) => {
-      if (move.type !== 'capture') return false
       if (!move.from) return false
       return topPiece(state, move.from.row, move.from.col)?.type === 'major'
+    },
+    softHint: {
+      komugi:
+        "You moved forward instead of capturing. That's a legal move, but the lesson is about the Major's diagonal strike. Press Start over and capture one of the enemy Pawns instead.",
+      meruem:
+        "You advanced. The lesson demanded a capture. Reset. Strike the diagonal.",
     },
     isComplete: (state) => state.players.white.onBoardCount < 3,
   },
@@ -365,7 +367,6 @@ export const LESSONS: TutorialLesson[] = [
       whitePlaced: 15,
     }),
     isValidMove: (move, state) => {
-      if (move.type !== 'move') return false
       if (!move.from) return false
       return topPiece(state, move.from.row, move.from.col)?.type === 'general'
     },
@@ -381,9 +382,9 @@ export const LESSONS: TutorialLesson[] = [
     title: "The General's strike",
     intro: {
       komugi:
-        "Generals capture like Majors do — on the diagonals, not straight ahead. But Generals can capture on BOTH forward and backward diagonals.\n\nCapture the enemy Pawn on your diagonal.",
+        "Generals capture on the diagonals, not straight ahead. Generals can capture on BOTH forward AND backward diagonals.\n\nCapture one of the enemy Pawns on your diagonal.",
       meruem:
-        "The General strikes on four diagonals — forward and backward. Never orthogonal.\n\nTake the pawn.",
+        "The General strikes on four diagonals — forward and backward. Never orthogonal.\n\nTake a pawn.",
     },
     outro: {
       komugi:
@@ -404,9 +405,14 @@ export const LESSONS: TutorialLesson[] = [
       whitePlaced: 15,
     }),
     isValidMove: (move, state) => {
-      if (move.type !== 'capture') return false
       if (!move.from) return false
       return topPiece(state, move.from.row, move.from.col)?.type === 'general'
+    },
+    softHint: {
+      komugi:
+        "You moved the General instead of capturing. That's legal! But the lesson needs a capture — the General's diagonal strike. Press Start over and try again.",
+      meruem:
+        "You moved, not struck. Reset. Capture the diagonal.",
     },
     isComplete: (state) => state.players.white.onBoardCount < 3,
   },
@@ -417,9 +423,9 @@ export const LESSONS: TutorialLesson[] = [
     title: 'Pawns in the game phase',
     intro: {
       komugi:
-        "Once the game phase starts, pawns can be dropped anywhere on the board — not just your home rows. This lets you reinforce far forward.\n\nDrop a pawn somewhere past your third row — anywhere empty.",
+        "Once the game phase starts, pawns can be dropped anywhere on the board — not just your home rows.\n\nDrop a pawn somewhere past your third row — outside your starting territory.",
       meruem:
-        "The game phase lifts the pawn's territorial restriction. Your pawns may now be deployed to any empty square on the board.\n\nProject one into enemy territory.",
+        "The game phase lifts the pawn's territorial restriction. Pawns may now be deployed to any empty square.\n\nProject one into enemy territory — past your third row.",
     },
     outro: {
       komugi:
@@ -436,10 +442,14 @@ export const LESSONS: TutorialLesson[] = [
       blackPlaced: 15,
       whitePlaced: 15,
     }),
-    isValidMove: (move) =>
-      move.type === 'place' && move.piece === 'pawn' && move.to.row > 2,
+    isValidMove: (move) => move.type === 'place' && move.piece === 'pawn',
+    softHint: {
+      komugi:
+        "That counts as a drop, but it was still in your home rows. The lesson is about the NEW rule — pawns can now go anywhere. Press Start over and drop past your third row.",
+      meruem:
+        "A pawn in the rear. The lesson demanded projection beyond your third row. Reset.",
+    },
     isComplete: (state) => {
-      // A pawn exists somewhere past row 2 (outside home rows)
       for (let r = 3; r < 9; r++) {
         const row = state.board[r]!
         for (const tower of row) {
@@ -457,9 +467,9 @@ export const LESSONS: TutorialLesson[] = [
     readOnly: true,
     intro: {
       komugi:
-        "You've seen this in the last few lessons — when you move a piece to a square that already has something on it (yours OR the enemy's), you have a choice.\n\nYou can stack, putting your piece on top of what's there. Or you can capture, removing the top piece and taking its spot. When both are legal, the game will ask you which you meant.\n\nThe pieces we'll see next — Musketeer, Knight, Samurai, Archer — all follow this same rule. Any move onto an occupied square offers you both options.",
+        "You've seen this in the last few lessons — when you move a piece to a square that already has something on it (yours OR the enemy's), you have a choice.\n\nYou can stack, putting your piece on top of what's there. Or you can capture, removing the top piece and taking its spot. From here on, the game will prompt you any time you move onto an occupied square — even when only one option is legal — so you always confirm what you meant to do.\n\nThe pieces we'll see next — Musketeer, Knight, Samurai, Archer — all follow this same rule.",
       meruem:
-        "A recurring mechanic. Any move onto an occupied square — enemy or friendly — presents a choice: stack, or capture.\n\nStack: your piece lands on top. Capture: the top piece is removed; yours takes its place. When both are legal, the game will prompt you.\n\nInternalize this. Every piece that follows respects it.",
+        "A recurring mechanic. Any move onto an occupied square — enemy or friendly — presents a choice: stack, or capture.\n\nFrom this point forward, the game will prompt you on every occupied-square landing. This is deliberate. You must confirm your intent before acting.\n\nInternalize the mechanic. Every piece that follows respects it.",
     },
   },
 
@@ -469,6 +479,7 @@ export const LESSONS: TutorialLesson[] = [
     chapter: 4,
     chapterTitle: 'Other pieces',
     title: 'Samurai on the charge',
+    confirmAllOccupied: true,
     intro: {
       komugi:
         "The Samurai is like a queen, but limited to three squares per move. Eight directions — straight or diagonal — and it can capture anywhere along the path.\n\nThere's an enemy Pawn three squares forward. Go get it.",
@@ -496,6 +507,12 @@ export const LESSONS: TutorialLesson[] = [
       if (!move.from) return false
       return topPiece(state, move.from.row, move.from.col)?.type === 'samurai'
     },
+    softHint: {
+      komugi:
+        "You moved the Samurai somewhere, but didn't capture the Pawn. The Samurai's best use is taking enemies along its path. Press Start over and charge the Pawn.",
+      meruem:
+        "Motion without consequence. The lesson demanded the capture. Reset.",
+    },
     isComplete: (state) => state.players.white.onBoardCount < 2,
   },
   {
@@ -503,11 +520,12 @@ export const LESSONS: TutorialLesson[] = [
     chapter: 4,
     chapterTitle: 'Other pieces',
     title: 'The Musketeer',
+    confirmAllOccupied: true,
     intro: {
       komugi:
-        "The Musketeer is a long-range attacker. It slides any distance straight forward and captures the first enemy it hits — but it can only step one square diagonally backward to retreat.\n\nThere's an enemy Pawn down your file. Take it.",
+        "The Musketeer is a long-range attacker. It slides any distance straight forward and captures the first enemy it hits — but it can only step one square backward-diagonally to retreat.\n\nThere's an enemy Pawn down your file. Take it.",
       meruem:
-        "The Musketeer. A forward cannon in miniature — slides any distance down its file; captures the first enemy in line. Retreat is limited: one square, backward-diagonal only.\n\nFire.",
+        "The Musketeer. A forward cannon in miniature — slides any distance down its file; captures the first enemy in line. Retreat is limited: one square, backward-diagonal.\n\nFire.",
     },
     outro: {
       komugi:
@@ -528,14 +546,13 @@ export const LESSONS: TutorialLesson[] = [
     }),
     isValidMove: (move, state) => {
       if (!move.from) return false
-      if (topPiece(state, move.from.row, move.from.col)?.type !== 'musketeer') return false
-      return move.type === 'capture' || move.type === 'stack'
+      return topPiece(state, move.from.row, move.from.col)?.type === 'musketeer'
     },
     softHint: {
       komugi:
-        "You stacked on the pawn. For this lesson we need you to capture it with the Musketeer's slide. Start over and choose Capture.",
+        "That was a legal move — but not a capture. The Musketeer's strength is taking the first enemy in line. Press Start over and try firing again.",
       meruem:
-        "You stacked. Reset. Capture.",
+        "You moved without striking. Reset. Capture the enemy in your line.",
     },
     isComplete: (state) => state.players.white.onBoardCount < 2,
   },
@@ -544,6 +561,7 @@ export const LESSONS: TutorialLesson[] = [
     chapter: 4,
     chapterTitle: 'Other pieces',
     title: 'The Knight leaps',
+    confirmAllOccupied: true,
     intro: {
       komugi:
         "The Knight jumps in an L-shape — two squares forward or backward, then one to the side. It hops over whatever's in between, so walls of pawns don't stop it.\n\nThere's an enemy Pawn at a Knight's distance. Leap over and take it.",
@@ -561,7 +579,7 @@ export const LESSONS: TutorialLesson[] = [
       placements: [
         { row: 0, col: 4, stack: [B('marshal')] },
         { row: 3, col: 4, stack: [B('knight')] },
-        { row: 4, col: 4, stack: [B('pawn')] }, // wall to demonstrate the hop
+        { row: 4, col: 4, stack: [B('pawn')] }, // wall, demonstrating the hop
         { row: 5, col: 3, stack: [W('pawn')] },
         { row: 8, col: 4, stack: [W('marshal')] },
       ],
@@ -570,14 +588,13 @@ export const LESSONS: TutorialLesson[] = [
     }),
     isValidMove: (move, state) => {
       if (!move.from) return false
-      if (topPiece(state, move.from.row, move.from.col)?.type !== 'knight') return false
-      return move.type === 'capture' || move.type === 'stack'
+      return topPiece(state, move.from.row, move.from.col)?.type === 'knight'
     },
     softHint: {
       komugi:
-        "You stacked when we needed a capture. Try again — the Knight should leap and take the enemy.",
+        "You leaped somewhere, but not onto the enemy Pawn. Press Start over and take the target — the Knight's reach is exactly right for it.",
       meruem:
-        "Reset. Capture with the Knight.",
+        "You leaped uselessly. Reset. Take the pawn.",
     },
     isComplete: (state) => state.players.white.onBoardCount < 2,
   },
@@ -586,6 +603,7 @@ export const LESSONS: TutorialLesson[] = [
     chapter: 4,
     chapterTitle: 'Other pieces',
     title: 'The Archer fires',
+    confirmAllOccupied: true,
     intro: {
       komugi:
         "The Archer shoots on the diagonals — up to two squares away at tier 1. Higher tiers make it stronger: tier 2 is a full bishop, tier 3 is a queen.\n\nAn enemy Pawn sits two diagonal squares away. Shoot it down.",
@@ -611,35 +629,35 @@ export const LESSONS: TutorialLesson[] = [
     }),
     isValidMove: (move, state) => {
       if (!move.from) return false
-      if (topPiece(state, move.from.row, move.from.col)?.type !== 'archer') return false
-      return move.type === 'capture' || move.type === 'stack'
+      return topPiece(state, move.from.row, move.from.col)?.type === 'archer'
     },
     softHint: {
       komugi:
-        "You stacked instead of firing. Try again — we want the Archer to capture the enemy.",
+        "The Archer moved, but didn't fire on the target. Press Start over and take the enemy Pawn.",
       meruem:
-        "Reset. Fire.",
+        "A shot wasted. Reset. Fire on the target.",
     },
     isComplete: (state) => state.players.white.onBoardCount < 2,
   },
 
   // ─── Chapter 5: Complex pieces ─────────────────────────────────────────────
   {
-    id: 'ch5-l1-fortress',
+    id: 'ch5-l1-fortress-move',
     chapter: 5,
     chapterTitle: 'Complex pieces',
     title: 'The Fortress',
+    confirmAllOccupied: true,
     intro: {
       komugi:
-        "The Fortress is… kind of amazing. It can't be captured — nothing the enemy does can take it off the board.\n\nBut it can't capture enemies either. It moves one square in any direction, and it's meant to anchor your formation. Try stepping it forward one square.",
+        "The Fortress is… kind of amazing. It can't be captured — nothing the enemy does can take it off the board.\n\nBut it can't capture enemies either. It moves one square in any direction, meant to anchor your formation. Try stepping it forward one square.",
       meruem:
-        "The Fortress. Unkillable. No enemy piece may capture it; none may stack upon it. In exchange: it cannot capture. It moves one square, eight directions.\n\nMove it.",
+        "The Fortress. Unkillable. No enemy piece may capture it. In exchange: it cannot capture. Moves one square, eight directions.\n\nMove it.",
     },
     outro: {
       komugi:
-        "Your own pieces can stack ON TOP of a Fortress, which is really useful — when the piece on top gets captured, the Fortress underneath is still there, untouchable.",
+        "Good. Now let's look at one of the most important things about the Fortress — how other pieces interact with it.",
       meruem:
-        "A Fortress with a piece stacked atop it — the stack can be captured, but the Fortress beneath endures. A bulwark that regenerates by sacrificing its riders.",
+        "Continue. The Fortress's true value is what comes next.",
     },
     initialState: buildState({
       phase: 'game',
@@ -652,9 +670,14 @@ export const LESSONS: TutorialLesson[] = [
       whitePlaced: 15,
     }),
     isValidMove: (move, state) => {
-      if (move.type !== 'move') return false
       if (!move.from) return false
       return topPiece(state, move.from.row, move.from.col)?.type === 'fortress'
+    },
+    softHint: {
+      komugi:
+        "That wasn't a Fortress move — try pressing Start over and move the Fortress itself one square.",
+      meruem:
+        "Reset. Move the Fortress.",
     },
     isComplete: (state) => {
       const start = state.board[3]?.[4]
@@ -662,10 +685,57 @@ export const LESSONS: TutorialLesson[] = [
     },
   },
   {
-    id: 'ch5-l2-spy',
+    id: 'ch5-l2-fortress-stack',
+    chapter: 5,
+    chapterTitle: 'Complex pieces',
+    title: 'Stacking on a Fortress',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "Now — move your General backward onto your Fortress. You'll see something interesting: the game will only offer you the Stack option.\n\nThat's because Fortresses can't be captured, not even by your own pieces. The Stack-or-Capture prompt just shows Stack.",
+      meruem:
+        "Move your General backward onto your Fortress. Observe: only Stack is offered.\n\nThe Fortress cannot be captured — by you, by the enemy, by anyone. The choice does not exist.",
+    },
+    outro: {
+      komugi:
+        "That's the key to the Fortress — it's a base that never dies. You can build towers on top of it, and when those top pieces get captured, the Fortress is still there underneath, safe.",
+      meruem:
+        "A regenerating anchor. Build towers upon it; they may fall, the Fortress endures. A vital position-holder.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 1, col: 4, stack: [B('fortress')] },
+        { row: 2, col: 4, stack: [B('general')] },
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    isValidMove: (move, state) => {
+      if (!move.from) return false
+      return topPiece(state, move.from.row, move.from.col)?.type === 'general'
+    },
+    softHint: {
+      komugi:
+        "We want to see the General stack on top of the Fortress. Press Start over and try again.",
+      meruem:
+        "Reset. Move your General onto the Fortress.",
+    },
+    isComplete: (state) => {
+      const t = state.board[1]?.[4]
+      return !!t && t.length >= 2
+        && t[0]?.type === 'fortress'
+        && t.some((p) => p.type === 'general' && p.owner === 'black')
+    },
+  },
+  {
+    id: 'ch5-l3-spy',
     chapter: 5,
     chapterTitle: 'Complex pieces',
     title: 'The Spy',
+    confirmAllOccupied: true,
     intro: {
       komugi:
         "The Spy moves like the Marshal — one square in any direction at tier 1. But it has a special rule: if it captures anything, the Spy dies too.\n\nMutual destruction. Capture the enemy Pawn with your Spy — both pieces will be removed.",
@@ -690,17 +760,23 @@ export const LESSONS: TutorialLesson[] = [
       whitePlaced: 15,
     }),
     isValidMove: (move, state) => {
-      if (move.type !== 'capture') return false
       if (!move.from) return false
       return topPiece(state, move.from.row, move.from.col)?.type === 'spy'
+    },
+    softHint: {
+      komugi:
+        "The Spy moved but didn't capture. A Spy that doesn't trade is wasted potential. Press Start over and take the enemy.",
+      meruem:
+        "You moved the Spy, but did not spend it. Reset. Capture.",
     },
     isComplete: (state) => state.players.white.onBoardCount < 2,
   },
   {
-    id: 'ch5-l3-cannon',
+    id: 'ch5-l4-cannon',
     chapter: 5,
     chapterTitle: 'Complex pieces',
     title: 'The Cannon (tier 3 jump)',
+    confirmAllOccupied: true,
     intro: {
       komugi:
         "The Cannon gets better with tiers. Tier 1 is just a 1-2 square rook step. Tier 2 is a full rook. Tier 3 — what you have in front of you — can do both, AND can jump over exactly one piece to capture the one beyond.\n\nThere's a white Pawn in line as your platform, another behind it as the target. Jump the platform and capture the far pawn.",
@@ -726,18 +802,16 @@ export const LESSONS: TutorialLesson[] = [
       whitePlaced: 15,
     }),
     isValidMove: (move, state) => {
-      if (move.type !== 'capture') return false
       if (!move.from) return false
       return topPiece(state, move.from.row, move.from.col)?.type === 'cannon'
     },
     softHint: {
       komugi:
-        "You captured the platform pawn instead of the one behind it. That's a legal slide — but for this lesson we want the jump-capture. Start over and target the pawn further back.",
+        "The Cannon did something — but not the jump-capture. The far pawn (behind the platform) is the target. Press Start over and jump the platform to reach it.",
       meruem:
-        "You took the near target. The lesson's demand is the far one, across the platform. Reset.",
+        "The far target was not struck. Reset. Execute the jump.",
     },
     isComplete: (state) => {
-      // The target (the far white pawn at row 6, col 4) is gone.
       const tower = state.board[6]?.[4]
       return !tower?.some((p) => p.type === 'pawn' && p.owner === 'white')
     },
@@ -749,6 +823,7 @@ export const LESSONS: TutorialLesson[] = [
     chapter: 6,
     chapterTitle: 'Endgame',
     title: 'End the game',
+    confirmAllOccupied: true,
     intro: {
       komugi:
         "This is how the game ends — you physically capture the enemy Marshal. There's no check or checkmate like in chess; the Marshal has to actually be taken off the board.\n\nYour Samurai can reach the enemy Marshal in one move. Take it.",
@@ -771,7 +846,16 @@ export const LESSONS: TutorialLesson[] = [
       blackPlaced: 15,
       whitePlaced: 15,
     }),
-    isValidMove: (move) => move.type === 'capture' && move.to.row === 8 && move.to.col === 4,
+    isValidMove: (move, state) => {
+      if (!move.from) return false
+      return topPiece(state, move.from.row, move.from.col)?.type === 'samurai'
+    },
+    softHint: {
+      komugi:
+        "The Samurai moved, but didn't end the game. The enemy Marshal is straight ahead — press Start over and capture it.",
+      meruem:
+        "Useless motion. Reset. Take the Marshal.",
+    },
     isComplete: (state) => state.gameStatus === 'checkmate',
   },
   {
@@ -779,9 +863,10 @@ export const LESSONS: TutorialLesson[] = [
     chapter: 6,
     chapterTitle: 'Endgame',
     title: 'Friendly capture',
+    confirmAllOccupied: true,
     intro: {
       komugi:
-        "One last thing. In Gungi, you're allowed to capture your own pieces. It's… weird, I know. But sometimes it's the right move — to free up a blocked square, or to remove a dead-weight piece.\n\nYour own Pawn is directly in front of your Samurai, blocking its path. Remove it by capturing it with your Samurai.",
+        "One last thing. In Gungi, you're allowed to capture your own pieces. It's… weird, I know. But sometimes it's the right move — to free up a blocked square, or to remove a dead-weight piece.\n\nYour own Pawn blocks your Samurai's forward path. Remove it by capturing it with your Samurai.",
       meruem:
         "Self-capture. Permitted. A piece of your own that obstructs may be sacrificed to clear the line.\n\nThe pawn before your Samurai blocks nothing useful. Remove it.",
     },
@@ -804,17 +889,15 @@ export const LESSONS: TutorialLesson[] = [
     }),
     isValidMove: (move, state) => {
       if (!move.from) return false
-      if (topPiece(state, move.from.row, move.from.col)?.type !== 'samurai') return false
-      return move.type === 'capture' || move.type === 'stack'
+      return topPiece(state, move.from.row, move.from.col)?.type === 'samurai'
     },
     softHint: {
       komugi:
-        "You stacked on your own pawn — also a valid choice in real play! But for this lesson we're showing the friendly-capture option. Start over and choose Capture.",
+        "You moved the Samurai somewhere else, or stacked on the pawn. For this lesson we're demonstrating friendly-capture — press Start over and capture your own Pawn directly ahead.",
       meruem:
-        "You stacked. Valid. But the lesson demands removal. Reset. Capture.",
+        "Incorrect. Reset. Capture your own pawn — clear the line.",
     },
     isComplete: (state) => {
-      // The pawn at (4,4) is gone AND the samurai has moved there.
       const target = state.board[4]?.[4]
       return !target?.some((p) => p.type === 'pawn' && p.owner === 'black')
         && !!target?.some((p) => p.type === 'samurai' && p.owner === 'black')
@@ -832,5 +915,4 @@ export function nextLesson(id: string): TutorialLesson | undefined {
   return LESSONS[idx + 1]
 }
 
-// Re-export for type-checking compatibility
 export type { Move }
