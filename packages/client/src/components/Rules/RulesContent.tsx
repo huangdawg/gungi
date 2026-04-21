@@ -52,11 +52,10 @@ const GettingStarted: React.FC = () => (
 
     <H2>Goal of the game</H2>
     <P>
-      Capture your opponent's Marshal. The Marshal is in <strong>check</strong> when an
-      enemy piece threatens to capture it next turn. Unlike chess, there is no "escape
-      required" — you may move into or remain in check. Each player <strong>must act
+      Capture your opponent's Marshal. Unlike chess, there is no "escape required" —
+      you may leave your Marshal exposed to capture. Each player <strong>must act
       every turn</strong>: you must place from reserve or move a piece. If your Marshal
-      has no escape squares but you still have pieces in reserve, you drop a piece and
+      has no safe squares but you still have pieces in reserve, you drop a piece and
       play continues; if your Marshal is your last piece and every move walks into
       capture, you must still play one — and lose when the opponent takes it.
     </P>
