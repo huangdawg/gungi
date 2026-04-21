@@ -289,12 +289,13 @@ const PIECE_ENTRIES: PieceEntry[] = [
     ],
   },
   {
-    pieceType: 'samurai',
-    kanji: '士',
-    name: 'Samurai',
-    countLabel: '2 in normal, 1 in mini',
+    pieceType: 'fortress',
+    kanji: '岩',
+    name: 'Fortress',
+    countLabel: '2 in both modes',
     notes: [
-      <>Queen movement capped at 3 squares — 8 directions, stops on the first piece hit.</>,
+      <><strong>Uncapturable</strong>. No enemy piece can capture a Fortress, ever.</>,
+      <>Cannot capture, but your own pieces may stack on top of a Fortress.</>,
     ],
   },
   {
@@ -307,23 +308,12 @@ const PIECE_ENTRIES: PieceEntry[] = [
     ],
   },
   {
-    pieceType: 'spy',
-    kanji: '忍',
-    name: 'Spy',
-    countLabel: '2 in normal, removed in mini',
+    pieceType: 'samurai',
+    kanji: '士',
+    name: 'Samurai',
+    countLabel: '2 in normal, 1 in mini',
     notes: [
-      <>Ring teleport: at tier <em>N</em>, lands exactly <em>N</em> squares away in any of 8 directions, hopping over anything in between.</>,
-      <><strong>Mutual destruction</strong>: when the Spy captures <em>any</em> piece (enemy or friendly), the Spy is also removed from play.</>,
-    ],
-  },
-  {
-    pieceType: 'fortress',
-    kanji: '岩',
-    name: 'Fortress',
-    countLabel: '2 in both modes',
-    notes: [
-      <><strong>Uncapturable</strong>. No enemy piece can capture a Fortress, ever.</>,
-      <>Cannot capture, but your own pieces may stack on top of a Fortress. The piece on top is the active one; when it's captured, the Fortress is exposed again.</>,
+      <>Queen movement capped at 3 squares — 8 directions, stops on the first piece hit.</>,
     ],
   },
   {
@@ -333,6 +323,16 @@ const PIECE_ENTRIES: PieceEntry[] = [
     countLabel: '2 in normal, 1 in mini',
     notes: [
       <><strong>Tier 1</strong>: bishop, capped at 2 squares. <strong>Tier 2</strong>: full bishop. <strong>Tier 3</strong>: queen (bishop + rook, unlimited).</>,
+    ],
+  },
+  {
+    pieceType: 'spy',
+    kanji: '忍',
+    name: 'Spy',
+    countLabel: '2 in normal, removed in mini',
+    notes: [
+      <>Ring teleport: at tier <em>N</em>, lands exactly <em>N</em> squares away in any of 8 directions, hopping over anything in between.</>,
+      <><strong>Mutual destruction</strong>: when the Spy captures <em>any</em> piece (enemy or friendly), the Spy is also removed from play.</>,
     ],
   },
 ]
