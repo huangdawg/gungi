@@ -95,8 +95,7 @@ const NormalRules: React.FC = () => (
     <H2>Normal mode (9×9)</H2>
     <P>
       The classic mode. A 9×9 board with columns labeled <strong>a–i</strong> and rows
-      labeled <strong>1–9</strong>. Black sits at the top (ranks 8–9 in raw coordinates);
-      white sits at the bottom. Each player sees their own pieces at the bottom of
+      labeled <strong>1–9</strong>. Each player sees their own pieces at the bottom of
       their view.
     </P>
 
@@ -143,6 +142,15 @@ const NormalRules: React.FC = () => (
     <P>
       Black goes first. Then turns alternate until the game ends.
     </P>
+
+    <H3>Movement mechanics</H3>
+    <UL>
+      <li><strong>Stack OR capture on any occupied square</strong>. When a piece moves to a square occupied by another piece — <em>friendly or enemy</em> — you may choose to either stack on top (your piece lands on the tower, the piece underneath stays) or capture (the top of the tower is removed). Both options are offered for every such move.</li>
+      <li><strong>Self-capture allowed</strong>. You may intentionally capture your own piece. The captured piece is removed from play permanently (it does <em>not</em> return to your reserve). Useful rarely, but legal.</li>
+      <li><strong>Tier changes movement</strong>. A piece's active rules depend on the tier it sits at (how high in the tower). Some pieces gain new powers at tier 2 or tier 3 — see the Piece Index for each piece's tier-specific behavior.</li>
+      <li><strong>Max tower height: 3</strong>. You cannot stack onto a tower that already has 3 pieces.</li>
+      <li><strong>Cannot stack on Marshal</strong>. Neither yours nor your opponent's — the Marshal is unstackable regardless of ownership.</li>
+    </UL>
 
     <H3>Win conditions</H3>
     <UL>
@@ -287,60 +295,10 @@ const PieceIndex: React.FC = () => (
   </>
 )
 
-const CustomRules: React.FC = () => (
-  <>
-    <H2>Custom rules in this implementation</H2>
-    <P>
-      Standard Gungi rules vary between fan interpretations and the manga's
-      minimal on-page treatment. This implementation makes specific choices —
-      listed below so you know exactly what to expect.
-    </P>
-
-    <H3>Placement deviations</H3>
-    <UL>
-      <li><strong>Setup: all pieces must be placed in home rows</strong>, including pawns. Some rule sets allow pawns anywhere during setup; we don't.</li>
-      <li><strong>Game phase: advanced-pawn-as-beachhead</strong>. During the game phase, non-pawns can be placed on top of one of your own pawns anywhere on the board, not just in your home rows. Push a pawn forward, then deploy reinforcements onto it.</li>
-      <li><strong>Marshal must be placed first</strong>. You cannot place any other piece until your Marshal is on the board.</li>
-    </UL>
-
-    <H3>Movement deviations</H3>
-    <UL>
-      <li><strong>General and Major: no orthogonal capture</strong>. These pieces move forward/backward (General) or forward (Major) orthogonally, but only capture on the diagonal. An enemy directly ahead is unreachable via capture.</li>
-    </UL>
-
-    <H3>Stacking deviations</H3>
-    <UL>
-      <li><strong>Stack OR capture on any occupied square</strong>. Moving onto an occupied square offers both options. Stacking on an enemy piece leaves them on the board buried beneath yours.</li>
-      <li><strong>Self-capture is allowed</strong>. You can capture your own piece intentionally. The captured piece is removed from play permanently (does not return to your reserve).</li>
-      <li><strong>Cannot stack on Marshal</strong>, yours or the opponent's.</li>
-      <li><strong>Fortress is uncapturable but stackable</strong>. Your own pieces can sit on top of your own Fortress.</li>
-    </UL>
-
-    <H3>Roster deviations</H3>
-    <UL>
-      <li><strong>4 Generals and 6 Majors per player</strong> (swapped from some references that have 6 Generals / 4 Majors).</li>
-      <li><strong>No Lieutenant or Counsel pieces</strong>. Some standard rulesets include these; we don't.</li>
-      <li><strong>Mini mode has a reduced roster</strong> — no Majors, Knights, Cannons, or Spies. See the Mini tab.</li>
-    </UL>
-
-    <H3>Endgame deviations</H3>
-    <UL>
-      <li><strong>Marshal must be physically captured to win.</strong> No chess-style "trapped but uncaptured = checkmate." A player whose Marshal is in check may move it into further danger, leave it in place via another piece's move, or drop a reinforcement from reserve. The game ends only when the Marshal is actually taken.</li>
-      <li><strong>Each player must act every turn.</strong> You may not pass. If your Marshal is trapped and you have no legal Marshal-safe moves, you must still place from reserve or move some piece — even if every option leads to capture next turn.</li>
-      <li><strong>Cannon tier 3 jumps over dead pawns</strong>. Dead pawns (pawns that have been captured but remain on the board as markers) act as valid platforms for the Chinese-cannon jump capture.</li>
-    </UL>
-
-    <H3>Piece caps</H3>
-    <UL>
-      <li>Normal: 22 pieces max on board per player.</li>
-      <li>Mini: 13 pieces max on board per player.</li>
-    </UL>
-  </>
-)
 
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
-type Tab = 'start' | 'normal' | 'mini' | 'pieces' | 'custom'
+type Tab = 'start' | 'normal' | 'mini' | 'pieces'
 
 interface RulesContentProps {
   tab: Tab
@@ -352,6 +310,5 @@ export const RulesContent: React.FC<RulesContentProps> = ({ tab }) => {
     case 'normal': return <NormalRules />
     case 'mini':   return <MiniRules />
     case 'pieces': return <PieceIndex />
-    case 'custom': return <CustomRules />
   }
 }
