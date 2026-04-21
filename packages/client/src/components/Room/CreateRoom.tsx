@@ -242,6 +242,16 @@ export const CreateRoom: React.FC = () => {
         {error && (
           <p className="text-xs text-red-400 text-center -mt-2">{error}</p>
         )}
+
+        {/* Rules link — secondary, below the main CTAs */}
+        <div className="flex justify-center gap-4 -mt-2">
+          <a
+            href="/rules"
+            className="text-xs text-amber-400/60 hover:text-amber-300 tracking-wide transition-colors"
+          >
+            Rules reference
+          </a>
+        </div>
       </div>
     </div>
   )

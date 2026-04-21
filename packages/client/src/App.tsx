@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { CreateRoom } from './components/Room/CreateRoom'
 import { GamePage } from './components/Room/GamePage'
 import { LocalGame } from './components/Room/LocalGame'
+import { RulesPage } from './components/Rules/RulesPage'
 
 export const App: React.FC = () => {
   return (
@@ -11,6 +12,7 @@ export const App: React.FC = () => {
         <Route path="/" element={<CreateRoom />} />
         <Route path="/local" element={<LocalGame />} />
         <Route path="/room/:code" element={<GamePage />} />
+        <Route path="/rules" element={<RulesPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
