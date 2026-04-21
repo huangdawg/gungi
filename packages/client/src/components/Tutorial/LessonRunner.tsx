@@ -5,15 +5,13 @@ import { Board } from '../Board/Board'
 import { ReservePanel } from '../Reserve/ReservePanel'
 import { MoveChoiceModal } from '../Board/MoveChoiceModal'
 import { NarrativePane } from './NarrativePane'
-import type { Teacher, TutorialLesson } from './types'
+import type { Teacher, TeacherLines, TutorialLesson } from './types'
 
 interface LessonRunnerProps {
   lesson: TutorialLesson
   teacher: Teacher
   /** Called when the player advances (after seeing the outro). */
   onAdvance: () => void
-  /** Called when the player explicitly resets the lesson. */
-  onReset?: () => void
 }
 
 /**
@@ -28,10 +26,9 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({
   teacher,
   onAdvance,
 }) => {
-  // ── Game state (lesson-scoped) ──
-  const [gameState, setGameState] = useState<GameState>(
-    () => lesson.initialState ?? createInitialState('normal'),
-  )
+  const freshState = () => lesson.initialState ?? createInitialState('normal')
+
+  const [gameState, setGameState] = useState<GameState>(freshState)
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null)
   const [selectedReservePiece, setSelectedReservePiece] = useState<PieceType | null>(null)
   const [legalMoves, setLegalMoves] = useState<Move[]>([])
@@ -42,6 +39,8 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({
     to: Position
   } | null>(null)
   const [complete, setComplete] = useState(false)
+  /** Most recent non-completing move — used to drive the soft-hint narrative. */
+  const [softHintLines, setSoftHintLines] = useState<TeacherLines | null>(null)
 
   // Reset when lesson changes
   useEffect(() => {
@@ -51,7 +50,21 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({
     setLegalMoves([])
     setLastMove(null)
     setPendingChoice(null)
-    setComplete(lesson.readOnly ? false : false)
+    setComplete(false)
+    setSoftHintLines(null)
+  }, [lesson])
+
+  const handleReset = useCallback(() => {
+    setGameState(freshState())
+    setSelectedPosition(null)
+    setSelectedReservePiece(null)
+    setLegalMoves([])
+    setLastMove(null)
+    setPendingChoice(null)
+    setComplete(false)
+    setSoftHintLines(null)
+  // freshState is derived from `lesson` so intentionally omit it from deps.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson])
 
   const isValidMove = lesson.isValidMove ?? (() => true)
@@ -73,16 +86,24 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({
       if (!result.ok) return
       let newState = result.state
       const done = lesson.isComplete ? lesson.isComplete(newState) : true
-      // Single-player tutorial: if the lesson isn't complete yet, stay on
-      // black's turn so the player can keep iterating. (There's no real
-      // opponent — white is inert until the lesson explicitly scripts it.)
+      // Single-player tutorial: pin black's turn until the lesson completes
+      // — there's no opponent to make white's move.
       if (!done && newState.currentPlayer !== 'black') {
         newState = { ...newState, currentPlayer: 'black' }
       }
       setGameState(newState)
       setLastMove({ from: fromPos, to: toPos })
       clearSelection()
-      if (done) setComplete(true)
+      if (done) {
+        setComplete(true)
+        setSoftHintLines(null)
+      } else if (lesson.softHint) {
+        const hint =
+          typeof lesson.softHint === 'function'
+            ? lesson.softHint(move, newState)
+            : lesson.softHint
+        setSoftHintLines(hint ?? null)
+      }
     },
     [gameState, clearSelection, lesson],
   )
@@ -159,8 +180,13 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({
     [complete, lesson.readOnly, selectedReservePiece, filteredLegalMoves, clearSelection],
   )
 
-  // ── Narrative ──
-  const narrativeLines = complete && lesson.outro ? lesson.outro : lesson.intro
+  // ── Narrative + footer ──
+  const narrativeLines =
+    complete && lesson.outro
+      ? lesson.outro
+      : softHintLines && !complete
+        ? softHintLines
+        : lesson.intro
 
   const footer = complete ? (
     <button
@@ -177,22 +203,28 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({
       Continue →
     </button>
   ) : (
-    <div className="text-[11px] text-amber-200/50 uppercase tracking-widest">
-      Make your move when ready
+    <div className="flex flex-col gap-2">
+      <div className="text-[11px] text-amber-200/50 uppercase tracking-widest">
+        {softHintLines ? 'Try again' : 'Make your move when ready'}
+      </div>
+      <button
+        onClick={handleReset}
+        className="w-full py-1.5 rounded-lg bg-stone-800/60 hover:bg-stone-700/60 text-amber-200/80 text-xs transition-colors border border-amber-700/30"
+      >
+        Start over
+      </button>
     </div>
   )
 
   return (
     <div className="flex flex-1 items-start justify-center gap-4 px-4 py-4 flex-wrap">
-      {/* Narrative (left column) */}
-      <div className="w-80 max-w-full flex-shrink-0">
+      {/* Narrative (left column) — narrower to leave room for board */}
+      <div className="w-72 max-w-full flex-shrink-0">
         <NarrativePane teacher={teacher} lines={narrativeLines} footer={footer} />
       </div>
 
-      {/* Board + reserves */}
       {!lesson.readOnly && (
         <>
-          {/* Stack-vs-capture modal */}
           {pendingChoice && (
             <MoveChoiceModal
               moves={pendingChoice.moves}
@@ -204,19 +236,19 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({
             />
           )}
 
-          {/* Black reserve */}
-          <div className="flex flex-col gap-3 w-52">
+          {/* Reserve */}
+          <div className="flex flex-col gap-3 w-48">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-              <span className="text-xs text-amber-200/60">Black (you)</span>
+              <span className="text-xs text-amber-200/60">Your reserve</span>
             </div>
             <ReservePanel
               playerState={gameState.players.black}
               owner="black"
               isMyTurn={gameState.currentPlayer === 'black' && !complete}
               isMyPanel={gameState.currentPlayer === 'black'}
-              selectedReservePiece={gameState.currentPlayer === 'black' ? selectedReservePiece : null}
-              onReservePieceClick={gameState.currentPlayer === 'black' ? handleReservePieceClick : () => {}}
+              selectedReservePiece={selectedReservePiece}
+              onReservePieceClick={handleReservePieceClick}
               label="Reserve"
               mode={gameState.mode}
             />
@@ -231,24 +263,6 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({
               legalMoves={legalMoves}
               lastMove={lastMove}
               onCellClick={handleCellClick}
-            />
-          </div>
-
-          {/* White reserve (dim — no interaction in single-player tutorial) */}
-          <div className="flex flex-col gap-3 w-52 opacity-60">
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-stone-400" />
-              <span className="text-xs text-amber-200/60">White</span>
-            </div>
-            <ReservePanel
-              playerState={gameState.players.white}
-              owner="white"
-              isMyTurn={false}
-              isMyPanel={false}
-              selectedReservePiece={null}
-              onReservePieceClick={() => {}}
-              label="Reserve"
-              mode={gameState.mode}
             />
           </div>
         </>

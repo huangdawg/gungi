@@ -4,6 +4,8 @@ import { useGameStore } from '../../store/gameStore'
 import { apiUrl } from '../../config'
 import { ensureGuestSession } from '../../api/session'
 import { ModePicker } from '../ModePicker/ModePicker'
+import { loadProgress } from '../Tutorial/progress'
+import type { Teacher } from '../Tutorial/types'
 import type { GameMode } from '@gungi/engine'
 
 // ─── Ukiyo-e background ───────────────────────────────────────────────────────
@@ -63,12 +65,14 @@ export const CreateRoom: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   /** Which flow the mode picker will feed into once a mode is chosen. */
   const [pickerFor, setPickerFor] = useState<'create' | 'local' | null>(null)
+  const [tutorialTeacher, setTutorialTeacher] = useState<Teacher | null>(null)
 
   // Initialize guest session on mount
   useEffect(() => {
     ensureGuestSession()
       .then((token) => setSessionToken(token))
       .catch((err) => console.error('Session init error:', err))
+    setTutorialTeacher(loadProgress().teacher)
   }, [setSessionToken])
 
   const handleCreate = () => {
@@ -243,37 +247,47 @@ export const CreateRoom: React.FC = () => {
           <p className="text-xs text-red-400 text-center -mt-2">{error}</p>
         )}
 
-        {/* Tutorial CTA — prominent full-width button for first-time players */}
-        <button
-          onClick={() => navigate('/tutorial')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg
-            bg-gradient-to-r from-amber-900/40 to-amber-800/30 hover:from-amber-800/50 hover:to-amber-700/40
-            border border-amber-500/50 hover:border-amber-400/70
-            text-left transition-all group"
-        >
-          <span
-            className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold border-2 flex-shrink-0"
-            style={{
-              borderColor: '#E8C87C',
-              color: '#E8C87C',
-              fontFamily: "'Noto Serif SC', serif",
-              background: '#E8C87C14',
-            }}
-          >
-            盲
-          </span>
-          <div className="flex flex-col flex-1 min-w-0">
-            <span className="text-sm font-semibold text-amber-200 leading-tight">
-              New to Gungi?
-            </span>
-            <span className="text-xs text-amber-300/70 leading-tight">
-              Learn to play — guided lessons from Komugi or Meruem
-            </span>
-          </div>
-          <span className="text-amber-300/60 group-hover:text-amber-200 group-hover:translate-x-0.5 transition-all text-lg">
-            →
-          </span>
-        </button>
+        {/* Tutorial CTA — visuals adapt to whichever teacher (if any) the
+            player has already chosen; question-mark placeholder otherwise. */}
+        {(() => {
+          const style = tutorialTeacher === 'meruem'
+            ? { kanji: '王', color: '#A24040', label: 'Resume with Meruem', tagline: "Resume your tutorial — the King awaits." }
+            : tutorialTeacher === 'komugi'
+            ? { kanji: '盲', color: '#E8C87C', label: 'Resume with Komugi', tagline: "Resume your tutorial — Komugi is waiting." }
+            : { kanji: '?',  color: '#7FA8C9', label: 'New to Gungi?',      tagline: 'Learn to play — guided lessons from Komugi or Meruem.' }
+          return (
+            <button
+              onClick={() => navigate('/tutorial')}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg
+                bg-gradient-to-r from-stone-900/60 to-stone-950/50 hover:from-stone-800/70 hover:to-stone-900/60
+                border text-left transition-all group"
+              style={{ borderColor: `${style.color}80` }}
+            >
+              <span
+                className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold border-2 flex-shrink-0"
+                style={{
+                  borderColor: style.color,
+                  color: style.color,
+                  fontFamily: "'Noto Serif SC', serif",
+                  background: `${style.color}1a`,
+                }}
+              >
+                {style.kanji}
+              </span>
+              <div className="flex flex-col flex-1 min-w-0">
+                <span className="text-sm font-semibold leading-tight" style={{ color: style.color }}>
+                  {style.label}
+                </span>
+                <span className="text-xs text-amber-300/70 leading-tight">
+                  {style.tagline}
+                </span>
+              </div>
+              <span className="group-hover:translate-x-0.5 transition-all text-lg" style={{ color: `${style.color}cc` }}>
+                →
+              </span>
+            </button>
+          )
+        })()}
 
         {/* Rules reference — subtle footer link */}
         <div className="flex justify-center -mt-2">

@@ -39,6 +39,13 @@ export interface TutorialLesson {
    * has been met. Default: any single move completes the lesson.
    */
   isComplete?: (state: GameState) => boolean
+  /**
+   * Optional gentle correction when a move was accepted by `isValidMove` but
+   * didn't satisfy `isComplete` — e.g. the player stacked when the lesson
+   * asked them to capture. Shown in place of the intro narrative until the
+   * player either makes the correct move or resets the lesson.
+   */
+  softHint?: TeacherLines | ((move: Move, state: GameState) => TeacherLines | undefined)
 }
 
 export interface TutorialProgress {
