@@ -286,7 +286,7 @@ function hasTierVariation(pieceType: PieceType): boolean {
  */
 export const PieceDiagramSet: React.FC<{ pieceType: PieceType; size?: number }> = ({
   pieceType,
-  size = 200,
+  size = 300,
 }) => {
   const tiers: (1 | 2 | 3)[] = hasTierVariation(pieceType) ? [1, 2, 3] : [1]
 

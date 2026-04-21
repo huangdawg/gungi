@@ -338,22 +338,41 @@ const PIECE_ENTRIES: PieceEntry[] = [
 ]
 
 const PieceEntryBlock: React.FC<{ entry: PieceEntry }> = ({ entry }) => (
-  <section className="my-6 border-t border-amber-700/20 pt-5">
-    <H3>
-      <Kanji char={entry.kanji}>{entry.name}</Kanji>
-      <span className="text-amber-200/50 ml-2 text-xs normal-case tracking-normal">
-        ({entry.countLabel})
+  <details open className="my-5 border-t border-amber-700/20 pt-4 group">
+    <summary
+      className="list-none cursor-pointer flex items-center gap-2 select-none hover:text-amber-200 transition-colors"
+      style={{ outline: 'none' }}
+    >
+      <span
+        className="inline-block text-amber-400/60 group-open:rotate-90 transition-transform text-xs"
+        aria-hidden
+      >
+        ▶
       </span>
-    </H3>
-    <PieceDiagramSet pieceType={entry.pieceType} />
-    {entry.notes.length > 0 && (
-      <UL>
-        {entry.notes.map((note, i) => (
-          <li key={i}>{note}</li>
-        ))}
-      </UL>
-    )}
-  </section>
+      <h3 className="text-sm font-semibold text-amber-200 uppercase tracking-widest mb-0 inline">
+        <span
+          className="text-amber-300 font-semibold"
+          style={{ fontFamily: "'Noto Serif SC', serif" }}
+        >
+          {entry.kanji}
+        </span>
+        <span className="ml-2">{entry.name}</span>
+        <span className="text-amber-200/50 ml-2 text-xs normal-case tracking-normal">
+          ({entry.countLabel})
+        </span>
+      </h3>
+    </summary>
+    <div className="mt-2">
+      <PieceDiagramSet pieceType={entry.pieceType} size={300} />
+      {entry.notes.length > 0 && (
+        <UL>
+          {entry.notes.map((note, i) => (
+            <li key={i}>{note}</li>
+          ))}
+        </UL>
+      )}
+    </div>
+  </details>
 )
 
 const PieceIndex: React.FC = () => (
