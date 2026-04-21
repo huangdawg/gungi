@@ -13,6 +13,7 @@ import { Board } from '../Board/Board'
 import { ReservePanel } from '../Reserve/ReservePanel'
 import { GameOverOverlay } from '../GameOver/GameOverOverlay'
 import { MoveChoiceModal } from '../Board/MoveChoiceModal'
+import { RulesModal, RulesHelpButton } from '../Rules/RulesModal'
 
 // ─── Debug helper ─────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ export const LocalGame: React.FC = () => {
   const [lastMove, setLastMove] = useState<{ from: Position | null; to: Position } | null>(null)
   const [drawOffered, setDrawOffered] = useState(false)
   const [drawPending, setDrawPending] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
   const [pendingChoice, setPendingChoice] = useState<{
     moves: Move[]
     from: Position | null
@@ -304,8 +306,11 @@ export const LocalGame: React.FC = () => {
           <span className="text-xs text-amber-200/30">
             Turn {gameState.turnNumber} · {gameState.phase === 'setup' ? 'Setup' : 'Game'}
           </span>
+          <RulesHelpButton onClick={() => setRulesOpen(true)} />
         </div>
       </div>
+
+      <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
 
       {/* Main layout */}
       <div className="flex flex-1 items-start justify-center gap-4 px-4 py-4 flex-wrap">

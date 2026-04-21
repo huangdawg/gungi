@@ -11,6 +11,7 @@ import { MoveChoiceModal } from '../Board/MoveChoiceModal'
 import { emitJoinRoom, emitMove, emitDebugSetState } from '../../socket/client'
 import { ensureGuestSession } from '../../api/session'
 import type { Move, Position, Player } from '@gungi/engine'
+import { RulesModal, RulesHelpButton } from '../Rules/RulesModal'
 
 // ─── Game page ────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ export const GamePage: React.FC = () => {
   } = useGameStore()
 
   const [chatCollapsed, setChatCollapsed] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
   const [gameOver, setGameOver] = useState<{
     winner: Player | null
     reason: 'checkmate' | 'resigned' | 'draw' | 'forfeit'
@@ -244,8 +246,11 @@ export const GamePage: React.FC = () => {
           <span className="text-xs text-amber-200/30">
             Turn {gameState.turnNumber} · {gameState.phase === 'setup' ? 'Setup' : 'Game'}
           </span>
+          <RulesHelpButton onClick={() => setRulesOpen(true)} />
         </div>
       </div>
+
+      <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
 
       {/* Main layout */}
       <div className="flex flex-1 items-start justify-center gap-4 px-4 py-4 flex-wrap">
