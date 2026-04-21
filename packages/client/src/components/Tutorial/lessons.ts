@@ -206,9 +206,9 @@ export const LESSONS: TutorialLesson[] = [
     },
     outro: {
       komugi:
-        "That pawn is staying right there. When pawns are captured they become 'dead pawns' — you'll hear about that when we get to the Cannon.",
+        "That pawn is staying right there. Pawns make great anchors — they hold squares and form the base of towers.",
       meruem:
-        "The pawn holds its ground. Its corpse, later, will serve a purpose. Advance.",
+        "The pawn holds its ground. A foundation piece. Advance.",
     },
     initialState: buildState({
       phase: 'setup',
@@ -557,22 +557,22 @@ export const LESSONS: TutorialLesson[] = [
     isComplete: (state) => state.players.white.onBoardCount < 2,
   },
   {
-    id: 'ch4-l3-knight-leap',
+    id: 'ch4-l3-knight-t1',
     chapter: 4,
     chapterTitle: 'Other pieces',
-    title: 'The Knight leaps',
+    title: 'The Knight (tier 1)',
     confirmAllOccupied: true,
     intro: {
       komugi:
-        "The Knight jumps in an L-shape — two squares forward or backward, then one to the side. It hops over whatever's in between, so walls of pawns don't stop it.\n\nThere's an enemy Pawn at a Knight's distance. Leap over and take it.",
+        "The Knight jumps in a narrow L — two squares forward or backward, then one to the side. It hops over whatever's in between, so walls of pawns don't stop it.\n\nThere's an enemy Pawn at a Knight's distance. Leap over and take it.",
       meruem:
-        "The Knight. Narrow-L leap — two squares along a file, one across. Hops intervening pieces.\n\nStrike.",
+        "The Knight. Tier-1 movement: narrow-L only — two squares along a file, one across. Hops intervening pieces.\n\nStrike.",
     },
     outro: {
       komugi:
-        "The Knight's leap is great for getting behind enemy lines. It's also stronger at higher tiers — at tier 2 it gets all eight chess-knight moves, and at tier 3 it can also jump three squares straight.",
+        "The Knight's leap is great for getting behind enemy lines. It becomes stronger at higher tiers — let's see what happens when it's stacked.",
       meruem:
-        "At higher tiers the Knight gains the full chess-knight repertoire and an orthogonal three-hop. Cultivate towers with Knights on top.",
+        "At higher tiers the Knight's repertoire grows. Continue.",
     },
     initialState: buildState({
       phase: 'game',
@@ -599,22 +599,107 @@ export const LESSONS: TutorialLesson[] = [
     isComplete: (state) => state.players.white.onBoardCount < 2,
   },
   {
-    id: 'ch4-l4-archer-fire',
+    id: 'ch4-l4-knight-t2',
     chapter: 4,
     chapterTitle: 'Other pieces',
-    title: 'The Archer fires',
+    title: 'The Knight (tier 2)',
     confirmAllOccupied: true,
     intro: {
       komugi:
-        "The Archer shoots on the diagonals — up to two squares away at tier 1. Higher tiers make it stronger: tier 2 is a full bishop, tier 3 is a queen.\n\nAn enemy Pawn sits two diagonal squares away. Shoot it down.",
+        "Your Knight is now on top of a tower — tier 2. At this tier, it gets all eight chess-knight moves, including the wider L-shape: one square out, two squares over.\n\nThere's a Pawn only reachable by the wide L. Take it.",
       meruem:
-        "The Archer. A tier-1 Archer is a bishop capped at two squares. A tier-2 Archer is a full bishop; a tier-3 Archer is a queen.\n\nFire.",
+        "Tier-2 Knight. The full chess-knight repertoire — all eight L-shapes.\n\nA wide-L target waits. Take it.",
     },
     outro: {
       komugi:
-        "Archers are amazing when you stack them to tier 3. A tier-3 Archer has eight directions of unlimited range, just like a chess queen.",
+        "That wide L isn't available at tier 1 — the Knight had to climb the tower to reach it. Stacking matters.",
       meruem:
-        "At tier 3 the Archer reigns. Build the tower; unleash the queen.",
+        "The tower expands the Knight's authority. Continue.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 4, col: 4, stack: [B('pawn'), B('knight')] },
+        { row: 3, col: 6, stack: [W('pawn')] }, // (-1, +2): unreachable by narrow L
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    isValidMove: (move, state) => {
+      if (!move.from) return false
+      return topPiece(state, move.from.row, move.from.col)?.type === 'knight'
+    },
+    softHint: {
+      komugi:
+        "The Knight moved, but didn't capture the wide-L target. Press Start over and aim for the enemy Pawn.",
+      meruem:
+        "Incorrect. Reset. Target the wide-L pawn.",
+    },
+    isComplete: (state) => state.players.white.onBoardCount < 2,
+  },
+  {
+    id: 'ch4-l5-knight-t3',
+    chapter: 4,
+    chapterTitle: 'Other pieces',
+    title: 'The Knight (tier 3)',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "At tier 3, the Knight adds one more trick on top of all its L-shapes: it can jump exactly three squares in a straight line — orthogonally.\n\nThere's an enemy Pawn three squares directly ahead. Use the orthogonal jump to take it.",
+      meruem:
+        "Tier-3 Knight. All eight L-shapes, plus an orthogonal three-hop in any of four directions.\n\nThe target is three squares straight ahead. Execute.",
+    },
+    outro: {
+      komugi:
+        "That three-square hop only exists at tier 3 — it's a huge reach for a Knight. Tower-builders are rewarded.",
+      meruem:
+        "An orthogonal reach reserved for tier three. Prize it.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 4, col: 4, stack: [B('pawn'), B('pawn'), B('knight')] },
+        { row: 7, col: 4, stack: [W('pawn')] }, // 3 squares forward, only tier-3 can reach
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    isValidMove: (move, state) => {
+      if (!move.from) return false
+      return topPiece(state, move.from.row, move.from.col)?.type === 'knight'
+    },
+    softHint: {
+      komugi:
+        "You moved somewhere, but didn't use the tier-3 three-hop. Press Start over and take the Pawn three squares ahead.",
+      meruem:
+        "A lesser move than demanded. Reset. Three squares forward.",
+    },
+    isComplete: (state) => {
+      const t = state.board[7]?.[4]
+      return !t?.some((p) => p.type === 'pawn' && p.owner === 'white')
+    },
+  },
+  {
+    id: 'ch4-l6-archer-t1',
+    chapter: 4,
+    chapterTitle: 'Other pieces',
+    title: 'The Archer (tier 1)',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "The Archer shoots on the diagonals — up to two squares away at tier 1.\n\nAn enemy Pawn sits two diagonal squares away. Shoot it down.",
+      meruem:
+        "The Archer. Tier 1 — a bishop capped at two squares.\n\nFire.",
+    },
+    outro: {
+      komugi:
+        "Nice. The tier-1 Archer is limited to two diagonal squares — but it grows far more dangerous with each tier.",
+      meruem:
+        "Tier 1 restricts the Archer to two-square diagonals. Ascend the tower; its range expands.",
     },
     initialState: buildState({
       phase: 'game',
@@ -638,6 +723,94 @@ export const LESSONS: TutorialLesson[] = [
         "A shot wasted. Reset. Fire on the target.",
     },
     isComplete: (state) => state.players.white.onBoardCount < 2,
+  },
+  {
+    id: 'ch4-l7-archer-t2',
+    chapter: 4,
+    chapterTitle: 'Other pieces',
+    title: 'The Archer (tier 2)',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "At tier 2, the Archer becomes a full bishop — unlimited diagonals in all four directions.\n\nThere's an enemy Pawn far down a diagonal. Only a tier-2 Archer can reach it. Fire.",
+      meruem:
+        "Tier-2 Archer. A complete bishop — no distance cap along the diagonals.\n\nStrike the distant target.",
+    },
+    outro: {
+      komugi:
+        "See how much farther the Archer reaches now? Stacking pieces changes everything.",
+      meruem:
+        "Uncapped diagonals. The tower pays for itself. Continue.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 3, col: 3, stack: [B('pawn'), B('archer')] },
+        { row: 7, col: 7, stack: [W('pawn')] }, // 4 diagonal — unreachable at T1
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    isValidMove: (move, state) => {
+      if (!move.from) return false
+      return topPiece(state, move.from.row, move.from.col)?.type === 'archer'
+    },
+    softHint: {
+      komugi:
+        "The Archer moved, but didn't take the far diagonal target. Press Start over and fire down the diagonal.",
+      meruem:
+        "The target stands. Reset. Fire.",
+    },
+    isComplete: (state) => {
+      const t = state.board[7]?.[7]
+      return !t?.some((p) => p.type === 'pawn' && p.owner === 'white')
+    },
+  },
+  {
+    id: 'ch4-l8-archer-t3',
+    chapter: 4,
+    chapterTitle: 'Other pieces',
+    title: 'The Archer (tier 3)',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "At tier 3, the Archer is a queen — unlimited range on both diagonals AND orthogonals. Eight directions.\n\nThere's an enemy Pawn straight down your file. Only a tier-3 Archer can reach it. Fire.",
+      meruem:
+        "Tier-3 Archer. A queen. Unlimited range, eight directions.\n\nStrike.",
+    },
+    outro: {
+      komugi:
+        "A tier-3 Archer is devastating. It's the single most powerful piece on the board once you get there.",
+      meruem:
+        "The queen claims the board. Cultivate her.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 4, col: 3, stack: [B('pawn'), B('pawn'), B('archer')] },
+        { row: 4, col: 7, stack: [W('pawn')] }, // pure orthogonal — T1/T2 can't reach
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    isValidMove: (move, state) => {
+      if (!move.from) return false
+      return topPiece(state, move.from.row, move.from.col)?.type === 'archer'
+    },
+    softHint: {
+      komugi:
+        "You moved the Archer, but didn't use its new orthogonal range. Press Start over and strike along the row.",
+      meruem:
+        "Orthogonal power unused. Reset. Strike.",
+    },
+    isComplete: (state) => {
+      const t = state.board[4]?.[7]
+      return !t?.some((p) => p.type === 'pawn' && p.owner === 'white')
+    },
   },
 
   // ─── Chapter 5: Complex pieces ─────────────────────────────────────────────
@@ -772,7 +945,95 @@ export const LESSONS: TutorialLesson[] = [
     isComplete: (state) => state.players.white.onBoardCount < 2,
   },
   {
-    id: 'ch5-l4-cannon',
+    id: 'ch5-l4-cannon-t1',
+    chapter: 5,
+    chapterTitle: 'Complex pieces',
+    title: 'The Cannon (tier 1)',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "The Cannon at tier 1 moves like a short rook — one or two squares orthogonally, stopping on the first piece it hits.\n\nThere's an enemy Pawn two squares ahead. Take it.",
+      meruem:
+        "Tier-1 Cannon. A rook of reach two. Four directions, capped at two squares.\n\nStrike.",
+    },
+    outro: {
+      komugi:
+        "That's the baseline Cannon. It gets stronger fast as you stack it.",
+      meruem:
+        "Tier one establishes the rhythm. Ascend.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 4, col: 4, stack: [B('cannon')] },
+        { row: 6, col: 4, stack: [W('pawn')] },
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    isValidMove: (move, state) => {
+      if (!move.from) return false
+      return topPiece(state, move.from.row, move.from.col)?.type === 'cannon'
+    },
+    softHint: {
+      komugi:
+        "The Cannon moved but didn't hit the target. Press Start over and take the Pawn two squares ahead.",
+      meruem:
+        "Reset. Strike the Pawn.",
+    },
+    isComplete: (state) => {
+      const t = state.board[6]?.[4]
+      return !t?.some((p) => p.type === 'pawn' && p.owner === 'white')
+    },
+  },
+  {
+    id: 'ch5-l5-cannon-t2',
+    chapter: 5,
+    chapterTitle: 'Complex pieces',
+    title: 'The Cannon (tier 2)',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "At tier 2, the Cannon becomes a full rook — unlimited range in all four orthogonal directions.\n\nThere's an enemy Pawn far across the board. Only a tier-2 Cannon can reach that far. Fire.",
+      meruem:
+        "Tier-2 Cannon. A full rook — no distance cap.\n\nStrike.",
+    },
+    outro: {
+      komugi:
+        "A tier-2 Cannon dominates open files. The next tier adds something nobody else has — the jump capture.",
+      meruem:
+        "The file is yours. Tier three awaits.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 4, col: 4, stack: [B('pawn'), B('cannon')] },
+        { row: 4, col: 0, stack: [W('pawn')] }, // 4 squares — unreachable at T1
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    isValidMove: (move, state) => {
+      if (!move.from) return false
+      return topPiece(state, move.from.row, move.from.col)?.type === 'cannon'
+    },
+    softHint: {
+      komugi:
+        "The Cannon moved, but didn't hit the far pawn. Press Start over and fire down the row.",
+      meruem:
+        "The file stands unclaimed. Reset. Strike.",
+    },
+    isComplete: (state) => {
+      const t = state.board[4]?.[0]
+      return !t?.some((p) => p.type === 'pawn' && p.owner === 'white')
+    },
+  },
+  {
+    id: 'ch5-l6-cannon-t3',
     chapter: 5,
     chapterTitle: 'Complex pieces',
     title: 'The Cannon (tier 3 jump)',
@@ -785,9 +1046,9 @@ export const LESSONS: TutorialLesson[] = [
     },
     outro: {
       komugi:
-        "That's the signature Cannon move. Any piece between you and the target works as a platform — even a dead pawn, which is why dead pawns aren't removed from the board.",
+        "That's the signature Cannon move. Any piece between you and the target works as a platform — your own, the enemy's, anything.",
       meruem:
-        "The Cannon's jump does not discriminate. Ally, enemy, dead pawn — all serve as platforms. Construct lines deliberately.",
+        "The Cannon's jump does not discriminate. Any piece — ally, enemy — serves as a platform. Construct lines deliberately.",
     },
     initialState: buildState({
       phase: 'game',
