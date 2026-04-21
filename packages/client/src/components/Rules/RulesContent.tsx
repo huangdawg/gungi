@@ -1,4 +1,5 @@
 import React from 'react'
+import { PieceDiagramSet } from './PieceDiagram'
 
 // ─── Shared primitives ────────────────────────────────────────────────────────
 
@@ -205,92 +206,175 @@ const MiniRules: React.FC = () => (
   </>
 )
 
+const Legend: React.FC = () => (
+  <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-amber-100/80 my-3 px-3 py-2 bg-amber-900/15 border border-amber-700/20 rounded">
+    <span className="flex items-center gap-2">
+      <span className="inline-block w-2 h-2 rounded-full" style={{ background: '#6BAE8A' }} />
+      can move here (empty) or stack on friendly
+    </span>
+    <span className="flex items-center gap-2">
+      <span
+        className="inline-block rounded-full"
+        style={{ width: 10, height: 10, border: '2px solid #C64040' }}
+      />
+      can capture enemy here
+    </span>
+  </div>
+)
+
+type PieceEntry = {
+  pieceType: import('@gungi/engine').PieceType
+  kanji: string
+  name: string
+  countLabel: string
+  notes: React.ReactNode[]
+}
+
+const PIECE_ENTRIES: PieceEntry[] = [
+  {
+    pieceType: 'marshal',
+    kanji: '帅',
+    name: 'Marshal',
+    countLabel: '1 per player',
+    notes: [
+      <>Cannot be stacked on by either side. Cannot be self-captured.</>,
+      <>The game ends only when a Marshal is <em>physically captured</em>.</>,
+    ],
+  },
+  {
+    pieceType: 'pawn',
+    kanji: '兵',
+    name: 'Pawn',
+    countLabel: '9 in normal, 6 in mini',
+    notes: [
+      <>Cannot move or capture at any tier — pawns stay where they are placed.</>,
+      <>A captured pawn becomes a <em>dead pawn</em>: it counts as a valid platform for a Tier-3 Cannon's jump capture.</>,
+    ],
+  },
+  {
+    pieceType: 'major',
+    kanji: '中',
+    name: 'Major',
+    countLabel: '6 in normal, removed in mini',
+    notes: [
+      <>Captures <em>diagonal-forward only</em>. No orthogonal capture — an enemy directly ahead is untouchable by this piece.</>,
+    ],
+  },
+  {
+    pieceType: 'general',
+    kanji: '大',
+    name: 'General',
+    countLabel: '4 in normal, 3 in mini',
+    notes: [
+      <>Captures <em>diagonally only</em>. No orthogonal capture — an enemy directly ahead or behind is untouchable.</>,
+    ],
+  },
+  {
+    pieceType: 'musketeer',
+    kanji: '筒',
+    name: 'Musketeer',
+    countLabel: '2 in both modes',
+    notes: [
+      <>Asymmetric: slides any distance forward but only steps 1 square diagonally backward.</>,
+    ],
+  },
+  {
+    pieceType: 'knight',
+    kanji: '马',
+    name: 'Knight',
+    countLabel: '2 in normal, removed in mini',
+    notes: [
+      <>Jumps over any intervening pieces.</>,
+      <><strong>Tier 1</strong>: narrow L only (long leg vertical). <strong>Tier 2</strong>: full chess knight. <strong>Tier 3</strong>: full knight plus a 3-square orthogonal hop.</>,
+    ],
+  },
+  {
+    pieceType: 'samurai',
+    kanji: '士',
+    name: 'Samurai',
+    countLabel: '2 in normal, 1 in mini',
+    notes: [
+      <>Queen movement capped at 3 squares — 8 directions, stops on the first piece hit.</>,
+    ],
+  },
+  {
+    pieceType: 'cannon',
+    kanji: '炮',
+    name: 'Cannon',
+    countLabel: '2 in normal, removed in mini',
+    notes: [
+      <><strong>Tier 1</strong>: 1–2 square rook step. <strong>Tier 2</strong>: full rook slide. <strong>Tier 3</strong>: rook slide <em>plus</em> jump-capture — attacks by hopping over exactly one piece (the platform) to hit the next piece in line. Dead pawns count as valid platforms.</>,
+    ],
+  },
+  {
+    pieceType: 'spy',
+    kanji: '忍',
+    name: 'Spy',
+    countLabel: '2 in normal, removed in mini',
+    notes: [
+      <>Ring teleport: at tier <em>N</em>, lands exactly <em>N</em> squares away in any of 8 directions, hopping over anything in between.</>,
+      <><strong>Mutual destruction</strong>: when the Spy captures <em>any</em> piece (enemy or friendly), the Spy is also removed from play.</>,
+    ],
+  },
+  {
+    pieceType: 'fortress',
+    kanji: '岩',
+    name: 'Fortress',
+    countLabel: '2 in both modes',
+    notes: [
+      <><strong>Uncapturable</strong>. No enemy piece can capture a Fortress, ever.</>,
+      <>Cannot capture, but your own pieces may stack on top of a Fortress. The piece on top is the active one; when it's captured, the Fortress is exposed again.</>,
+    ],
+  },
+  {
+    pieceType: 'archer',
+    kanji: '弓',
+    name: 'Archer',
+    countLabel: '2 in normal, 1 in mini',
+    notes: [
+      <><strong>Tier 1</strong>: bishop, capped at 2 squares. <strong>Tier 2</strong>: full bishop. <strong>Tier 3</strong>: queen (bishop + rook, unlimited).</>,
+    ],
+  },
+]
+
+const PieceEntryBlock: React.FC<{ entry: PieceEntry }> = ({ entry }) => (
+  <section className="my-6 border-t border-amber-700/20 pt-5">
+    <H3>
+      <Kanji char={entry.kanji}>{entry.name}</Kanji>
+      <span className="text-amber-200/50 ml-2 text-xs normal-case tracking-normal">
+        ({entry.countLabel})
+      </span>
+    </H3>
+    <PieceDiagramSet pieceType={entry.pieceType} />
+    {entry.notes.length > 0 && (
+      <UL>
+        {entry.notes.map((note, i) => (
+          <li key={i}>{note}</li>
+        ))}
+      </UL>
+    )}
+  </section>
+)
+
 const PieceIndex: React.FC = () => (
   <>
     <H2>Piece Index</H2>
     <P>
-      Every piece. Each has a base movement/capture pattern, and some gain new
-      powers at higher tiers (when they sit on top of a tower of height 2 or 3).
+      Each piece below shows a reach diagram from the center of an empty 9×9 board.
+      Green dots mark squares the piece can move to or stack on; red rings mark
+      enemy-capture targets. Where a piece's behavior changes by tier (Knight, Cannon,
+      Spy, Archer), all three tiers are shown side-by-side.
     </P>
+    <Legend />
 
-    <H3><Kanji char="帅">Marshal (1 per player)</Kanji></H3>
-    <UL>
-      <li>Moves 1 square in any direction (like a chess king).</li>
-      <li>Captures with the same move.</li>
-      <li>Cannot be stacked on by either side. Cannot be self-captured.</li>
-      <li>Its capture / being-checkmated ends the game.</li>
-    </UL>
-
-    <H3><Kanji char="兵">Pawn (9 in normal, 6 in mini)</Kanji></H3>
-    <UL>
-      <li>Moves 1 square forward.</li>
-      <li>Captures with the same forward move.</li>
-      <li>Once captured (removed from board), it becomes a <em>dead pawn</em>. In some positions a dead pawn acts as a platform for tier-3 cannon jumps — see the Cannon entry.</li>
-    </UL>
-
-    <H3><Kanji char="大">General (4 in normal, 3 in mini)</Kanji></H3>
-    <UL>
-      <li>Moves 1 square forward <em>or</em> 1 square backward (orthogonal, same column).</li>
-      <li>Captures <em>only diagonally</em> — 1 square diagonally forward or backward. No orthogonal captures.</li>
-      <li>Cannot take an enemy piece directly ahead or behind. Works around them by capturing on the diagonal, or steps past with a stack move.</li>
-    </UL>
-
-    <H3><Kanji char="中">Major (6 in normal, not in mini)</Kanji></H3>
-    <UL>
-      <li>Moves 1 square forward (orthogonal only, no backward).</li>
-      <li>Captures 1 square diagonally forward only. No orthogonal captures.</li>
-    </UL>
-
-    <H3><Kanji char="筒">Musketeer (2 in both modes)</Kanji></H3>
-    <UL>
-      <li>Slides forward any number of squares in the forward column until blocked.</li>
-      <li>Captures the first enemy piece it reaches on the slide.</li>
-    </UL>
-
-    <H3><Kanji char="马">Knight (2 in normal, not in mini)</Kanji></H3>
-    <UL>
-      <li>L-shaped jumps: 2 squares in one orthogonal direction, then 1 square perpendicular.</li>
-      <li>Jumps over intervening pieces.</li>
-      <li>Captures on the landing square.</li>
-    </UL>
-
-    <H3><Kanji char="士">Samurai (2 in normal, 1 in mini)</Kanji></H3>
-    <UL>
-      <li>Moves up to 3 squares in any of the 4 orthogonal directions, stopping at the first obstruction.</li>
-      <li>Captures anywhere along that path.</li>
-    </UL>
-
-    <H3><Kanji char="炮">Cannon (2 in normal, not in mini)</Kanji></H3>
-    <UL>
-      <li><strong>Tier 1</strong>: jumps exactly 2 squares orthogonally (over any square, friendly or enemy). No sliding.</li>
-      <li><strong>Tier 2</strong>: slides like a chess rook — any number of squares orthogonally, stopping at the first piece.</li>
-      <li><strong>Tier 3</strong>: "Chinese cannon" — slides like a rook, and additionally can capture by jumping <em>over exactly one piece</em> (the platform) to hit the first piece beyond. Dead pawns count as valid platforms.</li>
-    </UL>
-
-    <H3><Kanji char="忍">Spy (2 in normal, not in mini)</Kanji></H3>
-    <UL>
-      <li>Moves 1 square in any direction.</li>
-      <li>When the Spy captures <em>any</em> piece (friend or foe), the Spy is also removed from the board. Mutual destruction.</li>
-    </UL>
-
-    <H3><Kanji char="岩">Fortress (2 in both modes)</Kanji></H3>
-    <UL>
-      <li>Moves 1 square in any direction.</li>
-      <li><strong>Uncapturable</strong>: no enemy can capture a Fortress, ever. Not even via self-capture by your own side.</li>
-      <li>Your own pieces <em>can</em> stack on top of a Fortress. The piece on top is the "active" piece and can be captured normally. When it is, the Fortress becomes exposed again.</li>
-    </UL>
-
-    <H3><Kanji char="弓">Archer (2 in normal, 1 in mini)</Kanji></H3>
-    <UL>
-      <li>Moves 1 square at tier 1.</li>
-      <li>Range extends with tier — higher tiers can fire from farther away.</li>
-      <li>Indirect attacker; slides past empty squares and captures at range.</li>
-    </UL>
+    {PIECE_ENTRIES.map((entry) => (
+      <PieceEntryBlock key={entry.pieceType} entry={entry} />
+    ))}
 
     <Callout>
-      Tiers matter: a piece's active rules depend on what tier it sits at in its tower.
-      Stacking a piece onto a tower of 2 makes it tier 3 — the top piece may gain new powers.
-      Max tower height: 3.
+      Diagrams are generated directly from the rule engine — if the rules change,
+      so do the diagrams. Max tower height is 3; a piece's tier = how high in the
+      tower it sits (bottom = 1, top of a 3-stack = 3).
     </Callout>
   </>
 )
