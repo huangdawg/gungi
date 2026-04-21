@@ -293,8 +293,8 @@ const PIECE_ENTRIES: PieceEntry[] = [
     name: 'Fortress',
     countLabel: '2 in both modes',
     notes: [
-      <><strong>Uncapturable</strong>. No enemy piece can capture a Fortress, ever.</>,
-      <>Cannot capture, but your own pieces may stack on top of a Fortress.</>,
+      <><strong>Uncapturable</strong>. No piece can capture a Fortress — from either side.</>,
+      <>Cannot capture. <strong>Any</strong> piece (yours or the enemy's) may stack on top of a Fortress; the Fortress underneath remains indestructible.</>,
     ],
   },
   {

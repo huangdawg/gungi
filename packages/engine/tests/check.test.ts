@@ -32,7 +32,11 @@ function makeState(
     ...base,
     board,
     currentPlayer,
-    phase: 'hybrid',
+    phase: 'game',
+    players: {
+      black: { ...base.players.black, placedCount: 15 },
+      white: { ...base.players.white, placedCount: 15 },
+    },
     gameStatus: 'active',
   }
 }
@@ -143,7 +147,7 @@ describe('isCheckmate', () => {
         black: { reserve: [], placedCount: 0, onBoardCount: 0 }, // no pieces at all
         white: { reserve: [], placedCount: 0, onBoardCount: 0 },
       },
-      phase: 'hybrid',
+      phase: 'game',
       currentPlayer: 'black',
       gameStatus: 'active',
     }

@@ -21,8 +21,8 @@ export function getTier(tower: Tower | null): number {
 
 /**
  * Can a piece owned by `owner` land on this square at all?
- *   - Enemy fortress:  blocked (fortress is indestructible; no capture, no stack).
- *   - Own fortress:    allowed — friendly pieces may stack on top of it.
+ *   - Any fortress:    allowed as a landing target (it's stackable by any
+ *                      side). Capture is separately forbidden in buildMovesTo.
  *   - Own marshal:     blocked (cannot stack on / capture your own king).
  *   - Enemy marshal:   allowed here — capture handled in buildMovesTo.
  * Stack vs capture eligibility is refined in buildMovesTo.
@@ -34,7 +34,6 @@ export function canLandOn(board: Board, pos: Position, owner: Player): boolean {
   const top = tower[tower.length - 1]
   if (!top) return true
 
-  if (top.type === 'fortress' && top.owner !== owner) return false
   if (top.type === 'marshal' && top.owner === owner) return false
 
   return true
@@ -68,9 +67,10 @@ export function buildMovesTo(board: Board, from: Position, to: Position, owner: 
 
   const destTop = destTower[destTower.length - 1]!
 
-  // Own fortress: stack only, no capture (fortress is indestructible, so we
-  // never expose a capture option even though canLandOn let us land here).
-  if (destTop.type === 'fortress' && destTop.owner === owner) {
+  // ANY fortress (own or enemy): stack only, no capture. The fortress is
+  // indestructible — any piece may land on top of it, but neither side can
+  // remove it from the board.
+  if (destTop.type === 'fortress') {
     if (destTower.length < MAX_TOWER_HEIGHT) {
       return [{ type: 'stack', from, to, notation: `${kanji}${fn}+${tn}` }]
     }

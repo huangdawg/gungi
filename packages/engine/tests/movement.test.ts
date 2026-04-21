@@ -31,7 +31,11 @@ function makeState(
     ...base,
     board,
     currentPlayer,
-    phase: 'hybrid',
+    phase: 'game',
+    players: {
+      black: { ...base.players.black, placedCount: 15 },
+      white: { ...base.players.white, placedCount: 15 },
+    },
     gameStatus: 'active',
   }
 }

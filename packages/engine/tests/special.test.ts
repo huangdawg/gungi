@@ -37,7 +37,11 @@ function makeState(
     ...base,
     board,
     currentPlayer,
-    phase: 'hybrid',
+    phase: 'game',
+    players: {
+      black: { ...base.players.black, placedCount: 15 },
+      white: { ...base.players.white, placedCount: 15 },
+    },
     gameStatus: 'active',
   }
 }
@@ -153,15 +157,18 @@ describe('Spy mutual capture', () => {
 // ─── Fortress Immunity ────────────────────────────────────────────────────────
 
 describe('Fortress immunity', () => {
-  it('enemy cannot capture fortress', () => {
+  it('enemy cannot capture fortress, but may stack on it', () => {
     const state = makeState([
       { row: 4, col: 4, type: 'marshal', owner: 'white' },
       { row: 4, col: 5, type: 'fortress', owner: 'black' },
     ], 'white')
     const moves = getLegalMoves(state)
-    // Marshal at (4,4) moving to (4,5) should be blocked — fortress cannot be captured
-    const captureAtFortress = moves.find(m => m.to.row === 4 && m.to.col === 5)
-    expect(captureAtFortress).toBeUndefined()
+    const movesAtFortress = moves.filter(m => m.to.row === 4 && m.to.col === 5)
+    // No capture — fortress is indestructible
+    expect(movesAtFortress.some(m => m.type === 'capture')).toBe(false)
+    // But stacking onto an enemy fortress is legal (the fortress below stays
+    // alive underneath, serving as an indestructible tower base).
+    expect(movesAtFortress.some(m => m.type === 'stack')).toBe(true)
   })
 
   it('cannot self-capture fortress', () => {

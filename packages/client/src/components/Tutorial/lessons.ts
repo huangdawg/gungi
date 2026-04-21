@@ -1137,15 +1137,15 @@ export const LESSONS: TutorialLesson[] = [
     confirmAllOccupied: true,
     intro: {
       komugi:
-        "The Fortress breaks the usual rules a little. It CAN'T be captured by any piece — not yours, not the enemy's. It also can't capture anything itself.\n\nThere's a white Fortress directly in front of your Samurai. Try clicking the Samurai and look at its options — the Fortress square won't be offered as a move. Then move the Samurai somewhere it CAN go.",
+        "The Fortress breaks the usual rules a little. It CAN'T be captured — not by you, not by the enemy. It also can't capture anything itself.\n\nBUT any piece can stack on top of it. There's a white Fortress in front of your Samurai. Move onto it — the prompt will only offer Stack (no Capture), because the Fortress underneath is untouchable.",
       meruem:
-        "The Fortress. It cannot be captured — by any side. It cannot capture. A position-holder.\n\nObserve: click your Samurai. The enemy Fortress in front of it is not a legal target. Move the Samurai elsewhere.",
+        "The Fortress. Uncapturable — by any side. It cannot capture. However, any piece may stack atop it.\n\nAn enemy Fortress stands before your Samurai. Advance onto it. The prompt will show Stack only; the Fortress beneath remains indestructible.",
     },
     outro: {
       komugi:
-        "See how the Fortress square was just… missing from the highlights? That's what 'uncapturable' means in practice — the engine simply refuses that move. Your own pieces CAN stack on top of a friendly Fortress (not an enemy one), so they make great tower foundations.",
+        "Your Samurai is now on top of the enemy Fortress. The white Fortress is still there, underneath — if your Samurai is ever captured from up there, the Fortress will still be alive below. That's what makes Fortresses powerful anchors: they can't be removed, and they serve as tower bases for whoever climbs on top.",
       meruem:
-        "You observed the mechanic. The Fortress admits no capture — its square never lights. A friendly Fortress, however, will accept your own pieces on top. Use it to anchor your formations.",
+        "You occupy the summit. The Fortress persists beneath your Samurai — should the top piece fall, the Fortress endures. Exploit this asymmetry: stack on enemy Fortresses to deny them, on friendly Fortresses to fortify.",
     },
     initialState: buildState({
       phase: 'game',
@@ -1160,13 +1160,17 @@ export const LESSONS: TutorialLesson[] = [
     }),
     softHint: {
       komugi:
-        "We're demonstrating with the Samurai — click it, notice the Fortress square isn't offered, and move somewhere else. Press Start over and try again.",
+        "We're stacking the Samurai on top of the enemy Fortress at (e5). Press Start over and try again.",
       meruem:
-        "Reset. Click the Samurai. Observe. Move.",
+        "Reset. Samurai onto the Fortress. Stack.",
     },
     isComplete: (state) => {
-      const t = state.board[3]?.[4]
-      return !t?.some((p) => p.type === 'samurai' && p.owner === 'black')
+      const t = state.board[4]?.[4]
+      if (!t || t.length < 2) return false
+      const bottom = t[0]!
+      const top = t[t.length - 1]!
+      return bottom.type === 'fortress' && bottom.owner === 'white'
+        && top.type === 'samurai' && top.owner === 'black'
     },
   },
   {
