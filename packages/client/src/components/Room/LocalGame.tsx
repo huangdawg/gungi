@@ -50,7 +50,7 @@ function buildNearCheckmateState(): GameState {
       white: { reserve: emptyReserve, placedCount: 25, onBoardCount: 3 },
     },
     currentPlayer: 'black',
-    phase: 'hybrid',
+    phase: 'game',
     turnNumber: 51,
     gameStatus: 'active',
     winner: null,
@@ -302,7 +302,7 @@ export const LocalGame: React.FC = () => {
             {currentPlayer === 'black' ? '● Black' : '○ White'}'s turn
           </span>
           <span className="text-xs text-amber-200/30">
-            Turn {gameState.turnNumber} · {gameState.phase === 'placement' ? 'Placement' : 'Hybrid'}
+            Turn {gameState.turnNumber} · {gameState.phase === 'setup' ? 'Setup' : 'Game'}
           </span>
         </div>
       </div>
@@ -402,7 +402,7 @@ export const LocalGame: React.FC = () => {
             onClick={() => { setGameState(buildPreset('hybrid', mode)); clearSelection(); setLastMove(null) }}
             className="px-2 py-1 rounded bg-stone-800/80 border border-stone-600/40 text-amber-200/60 text-xs hover:text-amber-200 hover:border-amber-600/40 transition-colors"
           >
-            → Skip to Hybrid
+            → Skip Setup
           </button>
           {mode === 'normal' && (
             <button

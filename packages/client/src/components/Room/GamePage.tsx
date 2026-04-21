@@ -242,7 +242,7 @@ export const GamePage: React.FC = () => {
             {isMyTurn ? 'Your turn' : "Opponent's turn"}
           </span>
           <span className="text-xs text-amber-200/30">
-            Turn {gameState.turnNumber} · {gameState.phase === 'placement' ? 'Placement' : 'Hybrid'}
+            Turn {gameState.turnNumber} · {gameState.phase === 'setup' ? 'Setup' : 'Game'}
           </span>
         </div>
       </div>
@@ -318,7 +318,7 @@ export const GamePage: React.FC = () => {
             drawOffered={drawOffered}
             drawPending={drawPending}
             gameActive={gameState.gameStatus === 'active'}
-            canSkipPlacement={gameState.phase === 'placement'}
+            canSkipSetup={gameState.phase === 'setup'}
             mySkipVote={mySkipVote}
             opponentSkipVote={opponentSkipVote}
           />
@@ -342,7 +342,7 @@ export const GamePage: React.FC = () => {
             onClick={() => emitDebugSetState('hybrid')}
             className="px-2 py-1 rounded bg-stone-800/80 border border-stone-600/40 text-amber-200/60 text-xs hover:text-amber-200 hover:border-amber-600/40 transition-colors"
           >
-            → Skip to Hybrid
+            → Skip Setup
           </button>
           <button
             onClick={() => emitDebugSetState('near-checkmate')}

@@ -12,8 +12,8 @@ interface GameControlsProps {
   drawOffered: boolean   // opponent offered a draw
   drawPending: boolean   // we offered, waiting for opponent
   gameActive: boolean
-  /** Show the Skip-to-Hybrid voting UI (typically only during placement phase). */
-  canSkipPlacement: boolean
+  /** Show the Skip-Setup voting UI (only during setup phase). */
+  canSkipSetup: boolean
   mySkipVote: boolean
   opponentSkipVote: boolean
 }
@@ -22,7 +22,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
   drawOffered,
   drawPending,
   gameActive,
-  canSkipPlacement,
+  canSkipSetup,
   mySkipVote,
   opponentSkipVote,
 }) => {
@@ -43,19 +43,19 @@ export const GameControls: React.FC<GameControlsProps> = ({
     emitDrawOffer()
   }
 
-  // Skip-to-Hybrid button label depends on the vote state.
+  // Skip-Setup button label depends on the vote state.
   const skipLabel = mySkipVote
     ? 'Waiting for opponent...'
     : opponentSkipVote
       ? 'Opponent wants to skip — Confirm'
-      : 'Skip to Hybrid Setup'
+      : 'Skip Setup'
   const skipHandler = mySkipVote ? emitCancelSkip : emitRequestSkip
   const skipHighlight = opponentSkipVote && !mySkipVote
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Skip-to-Hybrid (only during placement) */}
-      {canSkipPlacement && (
+      {/* Skip-Setup vote (only during setup phase) */}
+      {canSkipSetup && (
         <button
           onClick={skipHandler}
           className={

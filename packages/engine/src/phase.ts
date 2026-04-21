@@ -9,16 +9,16 @@ export function computePhase(state: GameState): GamePhase {
   const threshold = MODES[state.mode].placementThreshold
   const { black, white } = state.players
   if (black.placedCount >= threshold && white.placedCount >= threshold) {
-    return 'hybrid'
+    return 'game'
   }
-  return 'placement'
+  return 'setup'
 }
 
 /**
  * Returns whether it is legal for `player` to make a placement move this turn.
  */
 export function canPlace(state: GameState, player: Player): boolean {
-  if (state.phase === 'hybrid') return true
+  if (state.phase === 'game') return true
   return state.players[player].placedCount < MODES[state.mode].placementThreshold
 }
 
@@ -27,7 +27,7 @@ export function canPlace(state: GameState, player: Player): boolean {
  * Only allowed in hybrid phase.
  */
 export function canMove(state: GameState): boolean {
-  return state.phase === 'hybrid'
+  return state.phase === 'game'
 }
 
 /**

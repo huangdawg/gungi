@@ -62,7 +62,7 @@ export function getLegalMoves(state: GameState): Move[] {
   moves.push(...placeMoves)
 
   // 2. Board moves (if in hybrid phase, or... placement phase = no board moves)
-  if (state.phase === 'hybrid') {
+  if (state.phase === 'game') {
     const size = state.board.length
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
@@ -112,7 +112,7 @@ function getPlacementMoves(state: GameState, player: Player): Move[] {
   const size = state.board.length
 
   // Check if placement is allowed this turn
-  if (state.phase === 'placement' && playerState.placedCount >= cfg.placementThreshold) return []
+  if (state.phase === 'setup' && playerState.placedCount >= cfg.placementThreshold) return []
   if (playerState.onBoardCount >= cfg.maxOnBoard) return []
 
   const reserve = playerState.reserve
@@ -125,7 +125,7 @@ function getPlacementMoves(state: GameState, player: Player): Move[] {
 
   const homeRows = homeRowsFor(state.mode, player)
   const inHome = (r: number) => homeRows.includes(r)
-  const isPlacementPhase = state.phase === 'placement'
+  const isPlacementPhase = state.phase === 'setup'
   const moves: Move[] = []
 
   for (const pieceType of uniqueTypes) {

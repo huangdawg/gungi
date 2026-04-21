@@ -51,24 +51,29 @@ const GettingStarted: React.FC = () => (
 
     <H2>Goal of the game</H2>
     <P>
-      Checkmate your opponent's Marshal. The Marshal is in <strong>check</strong> when
-      an enemy piece threatens to capture it on the next turn. It is{' '}
-      <strong>checkmate</strong> when the Marshal is in check and its owner has no legal
-      move that escapes check. If the opponent has no legal moves available at all
-      (even on a turn where they aren't in check), the game also ends — a custom rule
-      in this implementation.
+      Capture your opponent's Marshal. The Marshal is in <strong>check</strong> when an
+      enemy piece threatens to capture it next turn. Unlike chess, there is no "escape
+      required" — you may move into or remain in check. Each player <strong>must act
+      every turn</strong>: you must place from reserve or move a piece. If your Marshal
+      has no escape squares but you still have pieces in reserve, you drop a piece and
+      play continues; if your Marshal is your last piece and every move walks into
+      capture, you must still play one — and lose when the opponent takes it.
+    </P>
+    <P>
+      In short: the game ends only when the Marshal is <em>physically captured</em>, never
+      automatically on "trapped but uncaptured."
     </P>
 
     <H2>Two phases per game</H2>
     <UL>
-      <li><strong>Placement phase</strong>: each player takes turns placing pieces from reserve onto their own home rows. Once both players have placed the required number of pieces, placement ends and hybrid phase begins.</li>
-      <li><strong>Hybrid phase</strong>: each turn, choose to either <em>place</em> another piece from reserve or <em>move</em> a piece already on the board. Continues until the game ends.</li>
+      <li><strong>Setup</strong>: each player takes turns placing pieces from reserve onto their own home rows. Once both players have placed the required number of pieces, setup ends and the game phase begins.</li>
+      <li><strong>Game phase</strong>: each turn, choose to either <em>place</em> another piece from reserve or <em>move</em> a piece already on the board. Continues until a Marshal is captured.</li>
     </UL>
 
     <H2>Two modes available</H2>
     <UL>
-      <li><strong>Normal Gungi</strong> — 9×9 board, 34 pieces per player, place 15 before hybrid. The standard experience. See the "Normal" tab for full rules.</li>
-      <li><strong>Mini Gungi</strong> — 5×5 board, 16 pieces per player, place 9 before hybrid. Faster games with a trimmed piece roster. See the "Mini" tab for differences.</li>
+      <li><strong>Normal Gungi</strong> — 9×9 board, 34 pieces per player, place 15 in setup. The standard experience. See the "Normal" tab for full rules.</li>
+      <li><strong>Mini Gungi</strong> — 5×5 board, 16 pieces per player, place 9 in setup. Faster games with a trimmed piece roster. See the "Mini" tab for differences.</li>
     </UL>
 
     <H2>Playing online vs. local</H2>
@@ -110,15 +115,15 @@ const NormalRules: React.FC = () => (
       <li><Kanji char="弓">Archer</Kanji> × 2</li>
     </UL>
 
-    <H3>Placement phase</H3>
+    <H3>Setup</H3>
     <UL>
-      <li>Each player must place <strong>15 pieces</strong> before hybrid phase begins.</li>
+      <li>Each player must place <strong>15 pieces</strong> before the game phase begins.</li>
       <li>The Marshal must be your first placement.</li>
-      <li><strong>All pieces</strong> — including pawns — must be placed in your own first 3 rows during this phase.</li>
+      <li><strong>All pieces</strong> — including pawns — must be placed in your own first 3 rows during setup.</li>
       <li>You can stack pieces on top of your own existing pieces (on top of a friendly pawn, general, etc., but not on your own Marshal).</li>
     </UL>
 
-    <H3>Hybrid phase</H3>
+    <H3>Game phase</H3>
     <UL>
       <li>On each turn: place <em>or</em> move — your choice.</li>
       <li><strong>Pawn placement</strong>: anywhere on the board.</li>
@@ -141,10 +146,10 @@ const NormalRules: React.FC = () => (
 
     <H3>Win conditions</H3>
     <UL>
-      <li><strong>Checkmate</strong>: your opponent's Marshal is in check and they have no legal move.</li>
-      <li><strong>Marshal captured</strong>: if the Marshal is captured directly (via self-capture bug, forfeit-by-disconnect, etc.), the game ends in favor of the capturer.</li>
+      <li><strong>Marshal captured</strong>: the only way the game ends by play. A Marshal in check may still move (even into further danger), remain in place via another piece's move, or be saved by a reinforcement drop. The game ends when a Marshal is actually taken off the board.</li>
       <li><strong>Resignation</strong>: either player may resign at any time.</li>
       <li><strong>Draw</strong>: by mutual agreement (draw offer + accept).</li>
+      <li><strong>Forfeit</strong>: in network play, a player who disconnects for longer than the grace window forfeits the match.</li>
     </UL>
   </>
 )
@@ -161,7 +166,7 @@ const MiniRules: React.FC = () => (
     <H3>What differs from normal</H3>
     <UL>
       <li><strong>Board size</strong>: 5×5 instead of 9×9. Files labeled a–e, ranks 1–5.</li>
-      <li><strong>Placement threshold</strong>: 9 pieces each before hybrid (vs. 15).</li>
+      <li><strong>Setup threshold</strong>: 9 pieces each before game phase (vs. 15).</li>
       <li><strong>Piece cap on board</strong>: 13 per player (vs. 22).</li>
       <li><strong>Non-pawn drop zone</strong>: your own first <strong>2</strong> rows (vs. first 3). Pawn drop zone during placement phase is also restricted to first 2 rows.</li>
       <li><strong>Smaller roster</strong>: 16 pieces per player. Several piece types are removed (too strong on a small board).</li>
@@ -293,8 +298,8 @@ const CustomRules: React.FC = () => (
 
     <H3>Placement deviations</H3>
     <UL>
-      <li><strong>Placement phase: all pieces must be placed in home rows</strong>, including pawns. Some rule sets allow pawns anywhere during placement; we don't.</li>
-      <li><strong>Hybrid phase: advanced-pawn-as-beachhead</strong>. In hybrid, non-pawns can be placed on your own pawn anywhere on the board, not just in your home rows. Push a pawn forward, then deploy reinforcements onto it.</li>
+      <li><strong>Setup: all pieces must be placed in home rows</strong>, including pawns. Some rule sets allow pawns anywhere during setup; we don't.</li>
+      <li><strong>Game phase: advanced-pawn-as-beachhead</strong>. During the game phase, non-pawns can be placed on top of one of your own pawns anywhere on the board, not just in your home rows. Push a pawn forward, then deploy reinforcements onto it.</li>
       <li><strong>Marshal must be placed first</strong>. You cannot place any other piece until your Marshal is on the board.</li>
     </UL>
 
@@ -320,7 +325,8 @@ const CustomRules: React.FC = () => (
 
     <H3>Endgame deviations</H3>
     <UL>
-      <li><strong>All-moves-in-check = checkmate</strong>. If a player is in check and has no legal move that escapes check, they lose. No stalemate / draw-by-no-moves alternative.</li>
+      <li><strong>Marshal must be physically captured to win.</strong> No chess-style "trapped but uncaptured = checkmate." A player whose Marshal is in check may move it into further danger, leave it in place via another piece's move, or drop a reinforcement from reserve. The game ends only when the Marshal is actually taken.</li>
+      <li><strong>Each player must act every turn.</strong> You may not pass. If your Marshal is trapped and you have no legal Marshal-safe moves, you must still place from reserve or move some piece — even if every option leads to capture next turn.</li>
       <li><strong>Cannon tier 3 jumps over dead pawns</strong>. Dead pawns (pawns that have been captured but remain on the board as markers) act as valid platforms for the Chinese-cannon jump capture.</li>
     </UL>
 

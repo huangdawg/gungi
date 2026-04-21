@@ -7,7 +7,6 @@
 
 import type { GameState, Move, Player, PieceType } from './types.js'
 import { getLegalMoves, cloneBoard } from './movement.js'
-import { isCheckmate } from './check.js'
 import { computePhase, nextPlayer } from './phase.js'
 import { MODES } from './constants.js'
 import type { GameMode } from './constants.js'
@@ -50,7 +49,7 @@ export function createInitialState(mode: GameMode = 'normal'): GameState {
       white: { reserve: buildReserve(), placedCount: 0, onBoardCount: 0 },
     },
     currentPlayer: 'black',
-    phase: 'placement',
+    phase: 'setup',
     turnNumber: 1,
     gameStatus: 'active',
     winner: null,
@@ -196,29 +195,16 @@ function executeMove(state: GameState, move: Move): GameState {
   const nextTurnPlayer = nextPlayer(player)
   const nextTurnNumber = state.turnNumber + 1
 
-  // ── Checkmate Detection ──
-  const tempState: GameState = {
-    ...state,
-    board,
-    players,
-    currentPlayer: nextTurnPlayer,
-    phase: newPhase,
-    turnNumber: nextTurnNumber,
-    gameStatus: 'active',
-    winner: null,
-  }
-
-  // Check if next player has any legal moves — only in hybrid phase
-  // In placement phase, a player who has already placed 15 pieces has no placement moves
-  // but that is not checkmate; the game continues once the other player also reaches 15.
+  // Win condition: the Marshal must be physically captured. There is no
+  // chess-style "trapped but uncaptured = checkmate" — if the opponent has
+  // reserve pieces left, they can always drop. If their Marshal is trapped
+  // with no escape squares, they must still move (possibly into capture
+  // range); they lose only when their Marshal is actually taken the next
+  // turn. This matches the custom rule stated in the rules reference.
   let gameStatus = state.gameStatus
   let winner = state.winner
 
   if (capturedMarshal) {
-    // Marshal taken — instant win
-    gameStatus = 'checkmate'
-    winner = player
-  } else if (newPhase === 'hybrid' && isCheckmate(tempState, nextTurnPlayer)) {
     gameStatus = 'checkmate'
     winner = player
   }

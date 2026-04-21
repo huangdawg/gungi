@@ -79,7 +79,7 @@ export interface PlayerState {
  * placement = both players have placed fewer than 15 pieces; only place moves allowed.
  * hybrid    = both players have placed at least 15 pieces; each turn = place OR move.
  */
-export type GamePhase = 'placement' | 'hybrid'
+export type GamePhase = 'setup' | 'game'
 
 export type GameStatus = 'active' | 'checkmate' | 'resigned' | 'draw'
 
