@@ -1049,7 +1049,49 @@ export const LESSONS: TutorialLesson[] = [
     isComplete: (state) => state.players.white.onBoardCount < 2,
   },
   {
-    id: 'ch6-l2-spy-t2',
+    id: 'ch6-l2-spy-stack',
+    chapter: 6,
+    chapterTitle: 'Endgame',
+    title: 'The Spy — when not to capture',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "The Spy's mutual-destruction rule means every capture costs you the Spy. So sometimes the smarter move is to NOT capture — just stack onto a piece so the Spy survives.\n\nThere's a friendly Pawn next to your Spy. Move the Spy onto the pawn, and when the prompt appears, choose Stack. Your Spy lives to assassinate another day.",
+      meruem:
+        "The Spy is a sacrificial instrument. Squander it only on a worthy target.\n\nDemonstrate restraint: move your Spy onto the friendly pawn and select Stack. The Spy endures atop the tower, its threat preserved.",
+    },
+    outro: {
+      komugi:
+        "Good. Now your Spy is perched on top of the pawn — still alive, still dangerous. Save the capture for when it really matters.",
+      meruem:
+        "Correct. A living Spy threatens. A dead Spy is merely a trade. Choose your moment.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 3, col: 4, stack: [B('spy')] },
+        { row: 3, col: 5, stack: [B('pawn')] },
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    softHint: {
+      komugi:
+        "We wanted the Spy to stack onto the friendly Pawn — if you captured instead, the Spy is gone. Press Start over and choose Stack this time.",
+      meruem:
+        "The Spy was spent or unused. Reset. Stack it onto the pawn.",
+    },
+    isComplete: (state) => {
+      const t = state.board[3]?.[5]
+      if (!t || t.length < 2) return false
+      const top = t[t.length - 1]!
+      return top.type === 'spy' && top.owner === 'black'
+    },
+  },
+  {
+    id: 'ch6-l3-spy-t2',
     chapter: 6,
     chapterTitle: 'Endgame',
     title: 'The Spy (tier 2)',
@@ -1090,7 +1132,7 @@ export const LESSONS: TutorialLesson[] = [
     },
   },
   {
-    id: 'ch6-l3-spy-t3',
+    id: 'ch6-l4-spy-t3',
     chapter: 6,
     chapterTitle: 'Endgame',
     title: 'The Spy (tier 3)',
@@ -1130,16 +1172,95 @@ export const LESSONS: TutorialLesson[] = [
     },
   },
   {
-    id: 'ch6-l4-fortress',
+    id: 'ch6-l5-fortress-move',
     chapter: 6,
     chapterTitle: 'Endgame',
-    title: 'The Fortress',
+    title: 'The Fortress moves',
     confirmAllOccupied: true,
     intro: {
       komugi:
-        "The Fortress breaks the usual rules a little. It CAN'T be captured — not by you, not by the enemy. It also can't capture anything itself.\n\nBUT any piece can stack on top of it. There's a white Fortress in front of your Samurai. Move onto it — the prompt will only offer Stack (no Capture), because the Fortress underneath is untouchable.",
+        "Before the special rules, the basics: the Fortress moves one square in any of eight directions, like a Marshal.\n\nStep your Fortress one square.",
       meruem:
-        "The Fortress. Uncapturable — by any side. It cannot capture. However, any piece may stack atop it.\n\nAn enemy Fortress stands before your Samurai. Advance onto it. The prompt will show Stack only; the Fortress beneath remains indestructible.",
+        "The Fortress. One square, any direction. Baseline movement.\n\nMove it.",
+    },
+    outro: {
+      komugi:
+        "Simple movement. Now let's look at what makes the Fortress unusual.",
+      meruem:
+        "A kingly step. The peculiarities come next.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 3, col: 4, stack: [B('fortress')] },
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    softHint: {
+      komugi:
+        "We're showing Fortress movement — move the Fortress one square. Press Start over and try again.",
+      meruem:
+        "Reset. Move the Fortress.",
+    },
+    isComplete: (state) => {
+      const start = state.board[3]?.[4]
+      return !start?.some((p) => p.type === 'fortress' && p.owner === 'black')
+    },
+  },
+  {
+    id: 'ch6-l6-fortress-no-capture',
+    chapter: 6,
+    chapterTitle: 'Endgame',
+    title: 'The Fortress cannot capture',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "Here's the first strange thing about the Fortress: it can't capture. Not anyone, ever.\n\nThere's an enemy Pawn right next to your Fortress. Click the Fortress — you'll see the enemy square isn't offered as a move. Move the Fortress somewhere else.",
+      meruem:
+        "The Fortress does not capture. Any side, any piece — immune to its attack.\n\nSelect the Fortress. Note: the enemy pawn's square is not among its moves. Relocate the Fortress.",
+    },
+    outro: {
+      komugi:
+        "See? The enemy Pawn was right there, but the Fortress couldn't touch it. Fortresses are purely defensive — they hold ground, they don't attack.",
+      meruem:
+        "Purely defensive. A Fortress holds territory; it does not contest it. Plan accordingly.",
+    },
+    initialState: buildState({
+      phase: 'game',
+      placements: [
+        { row: 0, col: 4, stack: [B('marshal')] },
+        { row: 3, col: 4, stack: [B('fortress')] },
+        { row: 3, col: 5, stack: [W('pawn')] },
+        { row: 8, col: 4, stack: [W('marshal')] },
+      ],
+      blackPlaced: 15,
+      whitePlaced: 15,
+    }),
+    softHint: {
+      komugi:
+        "We're showing that the Fortress can't capture. Move the Fortress anywhere it's allowed — the enemy pawn's square won't be one of those options. Press Start over and try again.",
+      meruem:
+        "Reset. Move the Fortress. The enemy square is forbidden; find another.",
+    },
+    isComplete: (state) => {
+      const start = state.board[3]?.[4]
+      return !start?.some((p) => p.type === 'fortress' && p.owner === 'black')
+    },
+  },
+  {
+    id: 'ch6-l7-fortress-uncapturable',
+    chapter: 6,
+    chapterTitle: 'Endgame',
+    title: 'The Fortress is uncapturable',
+    confirmAllOccupied: true,
+    intro: {
+      komugi:
+        "The other strange thing: the Fortress can't be captured, either. By anyone, ever. But any piece CAN stack on top of it — the fortress below stays alive underneath.\n\nThere's a white Fortress in front of your Samurai. Move onto it. The prompt will only offer Stack (no Capture), because the Fortress underneath is untouchable.",
+      meruem:
+        "The second peculiarity: the Fortress cannot be captured. By any side. But any piece may stack atop it.\n\nAn enemy Fortress stands before your Samurai. Advance onto it. The prompt will show Stack only; the Fortress beneath remains indestructible.",
     },
     outro: {
       komugi:
@@ -1174,7 +1295,7 @@ export const LESSONS: TutorialLesson[] = [
     },
   },
   {
-    id: 'ch6-l5-capture-marshal',
+    id: 'ch6-l8-capture-marshal',
     chapter: 6,
     chapterTitle: 'Endgame',
     title: 'End the game',
@@ -1210,7 +1331,7 @@ export const LESSONS: TutorialLesson[] = [
     isComplete: (state) => state.gameStatus === 'checkmate',
   },
   {
-    id: 'ch6-l6-friendly-capture',
+    id: 'ch6-l9-friendly-capture',
     chapter: 6,
     chapterTitle: 'Endgame',
     title: 'Friendly capture',
