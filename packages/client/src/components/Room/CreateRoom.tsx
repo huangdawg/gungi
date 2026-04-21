@@ -246,6 +246,13 @@ export const CreateRoom: React.FC = () => {
         {/* Rules link — secondary, below the main CTAs */}
         <div className="flex justify-center gap-4 -mt-2">
           <a
+            href="/tutorial"
+            className="text-xs text-amber-300/80 hover:text-amber-200 tracking-wide transition-colors"
+          >
+            New to Gungi? Start the tutorial →
+          </a>
+          <span className="text-xs text-amber-400/30">·</span>
+          <a
             href="/rules"
             className="text-xs text-amber-400/60 hover:text-amber-300 tracking-wide transition-colors"
           >
