@@ -243,15 +243,40 @@ export const CreateRoom: React.FC = () => {
           <p className="text-xs text-red-400 text-center -mt-2">{error}</p>
         )}
 
-        {/* Rules link — secondary, below the main CTAs */}
-        <div className="flex justify-center gap-4 -mt-2">
-          <a
-            href="/tutorial"
-            className="text-xs text-amber-300/80 hover:text-amber-200 tracking-wide transition-colors"
+        {/* Tutorial CTA — prominent full-width button for first-time players */}
+        <button
+          onClick={() => navigate('/tutorial')}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg
+            bg-gradient-to-r from-amber-900/40 to-amber-800/30 hover:from-amber-800/50 hover:to-amber-700/40
+            border border-amber-500/50 hover:border-amber-400/70
+            text-left transition-all group"
+        >
+          <span
+            className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold border-2 flex-shrink-0"
+            style={{
+              borderColor: '#E8C87C',
+              color: '#E8C87C',
+              fontFamily: "'Noto Serif SC', serif",
+              background: '#E8C87C14',
+            }}
           >
-            New to Gungi? Start the tutorial →
-          </a>
-          <span className="text-xs text-amber-400/30">·</span>
+            盲
+          </span>
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="text-sm font-semibold text-amber-200 leading-tight">
+              New to Gungi?
+            </span>
+            <span className="text-xs text-amber-300/70 leading-tight">
+              Learn to play — guided lessons from Komugi or Meruem
+            </span>
+          </div>
+          <span className="text-amber-300/60 group-hover:text-amber-200 group-hover:translate-x-0.5 transition-all text-lg">
+            →
+          </span>
+        </button>
+
+        {/* Rules reference — subtle footer link */}
+        <div className="flex justify-center -mt-2">
           <a
             href="/rules"
             className="text-xs text-amber-400/60 hover:text-amber-300 tracking-wide transition-colors"

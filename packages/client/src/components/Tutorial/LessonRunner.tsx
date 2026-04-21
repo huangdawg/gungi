@@ -71,13 +71,17 @@ export const LessonRunner: React.FC<LessonRunnerProps> = ({
     (move: Move, fromPos: Position | null, toPos: Position) => {
       const result = applyMove(gameState, move)
       if (!result.ok) return
-      setGameState(result.state)
+      let newState = result.state
+      const done = lesson.isComplete ? lesson.isComplete(newState) : true
+      // Single-player tutorial: if the lesson isn't complete yet, stay on
+      // black's turn so the player can keep iterating. (There's no real
+      // opponent — white is inert until the lesson explicitly scripts it.)
+      if (!done && newState.currentPlayer !== 'black') {
+        newState = { ...newState, currentPlayer: 'black' }
+      }
+      setGameState(newState)
       setLastMove({ from: fromPos, to: toPos })
       clearSelection()
-
-      const done = lesson.isComplete
-        ? lesson.isComplete(result.state)
-        : true
       if (done) setComplete(true)
     },
     [gameState, clearSelection, lesson],
