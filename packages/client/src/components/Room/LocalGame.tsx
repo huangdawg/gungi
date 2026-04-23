@@ -174,16 +174,16 @@ export const LocalGame: React.FC = () => {
         const srcTop = srcTower ? srcTower[srcTower.length - 1] : null
         const isMajorOrGeneral =
           srcTop && (srcTop.type === 'major' || srcTop.type === 'general')
-        const isCaptureOnly =
-          destMoves.length === 1 && destMoves[0]!.type === 'capture'
         // Confirm via modal when:
         //   - multiple options (stack vs capture), OR
-        //   - capturing into a full (height-3) tower, OR
-        //   - Major/General executing a capture (high-value piece commits intent)
+        //   - landing onto a full (height-3) tower, OR
+        //   - Major/General landing on any occupied square — their orthogonal
+        //     stack and diagonal capture both commit a high-value piece, so
+        //     we always force an explicit confirmation.
         const needsConfirm =
           destMoves.length > 1 ||
           destHeight === 3 ||
-          (isMajorOrGeneral && isCaptureOnly)
+          (isMajorOrGeneral && destHeight > 0)
         if (needsConfirm) {
           setPendingChoice({ moves: destMoves, from: selectedPosition, to: pos })
           return
