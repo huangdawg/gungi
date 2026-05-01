@@ -8,6 +8,13 @@
       "when": 1776485872715,
       "tag": "0000_omniscient_spacker_dave",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777596054635,
+      "tag": "0001_open_stature",
+      "breakpoints": true
     }
   ]
 }
